@@ -115,3 +115,38 @@ export default function UserRoutes(app) {
     if (currentUser._id !== userId && currentUser.role !== "FACULTY" && currentUser.role !== "ADMIN") {
       res.sendStatus(403);
       return;
+    }
+    
+    enrollmentsDao.enrollUserInCourse(userId, courseId);
+    res.sendStatus(200);
+  };
+
+  const unenrollUserFromCourse = (req, res) => {
+    const { userId, courseId } = req.params;
+    const currentUser = req.session["currentUser"];
+    
+    // Check if user is unenrolling themselves or if they're faculty/admin
+    if (currentUser._id !== userId && currentUser.role !== "FACULTY" && currentUser.role !== "ADMIN") {
+      res.sendStatus(403);
+      return;
+    }
+    
+    enrollmentsDao.unenrollUserFromCourse(userId, courseId);
+    res.sendStatus(200);
+  };
+
+  // Routes
+  app.post("/api/users/signin", signin);
+  app.post("/api/users/signup", signup);
+  app.post("/api/users/profile", profile);
+  app.post("/api/users/signout", signout);
+  app.put("/api/users/:userId", updateUser);
+  app.get("/api/users/:userId/courses", findCoursesForEnrolledUser);
+  app.post("/api/users/current/courses", createCourse);
+  app.get("/api/users", findAllUsers);
+  app.get("/api/users/:userId", findUserById);
+  app.post("/api/users", createUser);
+  app.delete("/api/users/:userId", deleteUser);
+  app.post("/api/users/:userId/courses/:courseId", enrollUserInCourse);
+  app.delete("/api/users/:userId/courses/:courseId", unenrollUserFromCourse);
+}
