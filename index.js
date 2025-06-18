@@ -9,12 +9,45 @@ import ModuleRoutes from "./Kambaz/Modules/routes.js";
 
 const app = express();
 
+// CORS configuration - FIXED to allow multiple origins
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://localhost:4173',
+  'http://localhost:4000',
+  process.env.NETLIFY_URL,
+  'https://kambaz-node.onrender.com'
+].filter(Boolean); // Remove undefined values
+
+console.log('Allowed CORS origins:', allowedOrigins);
+
 app.use(
   cors({
     credentials: true,
-    origin: process.env.NETLIFY_URL || "http://localhost:5173",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like mobile apps or curl requests)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        console.log('CORS blocked origin:', origin);
+        return callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type', 
+      'Authorization', 
+      'X-Requested-With',
+      'Accept',
+      'Origin'
+    ]
   })
 );
+
+// Handle preflight requests
+app.options('*', cors());
 
 // Session configuration
 const sessionOptions = {
@@ -35,14 +68,32 @@ if (process.env.NODE_ENV !== "development") {
 app.use(session(sessionOptions));
 app.use(express.json());
 
+// Basic routes
 app.get('/', (req, res) => {
-  res.send('Welcome to Full Stack Development!');
+  res.json({
+    message: 'Welcome to Full Stack Development!',
+    timestamp: new Date().toISOString(),
+    cors: 'enabled',
+    allowedOrigins: allowedOrigins
+  });
 });
 
 app.get('/hello', (req, res) => {
-  res.send('Life is good!');
+  res.json({ message: 'Life is good!' });
 });
 
+// Test route for debugging
+app.get('/api/test', (req, res) => {
+  res.json({ 
+    message: 'API is working!', 
+    timestamp: new Date().toISOString(),
+    cors: 'enabled',
+    session: req.session ? 'active' : 'inactive',
+    origin: req.get('origin') || 'no-origin'
+  });
+});
+
+// Routes
 Lab5(app);           // Lab 5 exercises (PathParameters, QueryParameters, etc.)
 UserRoutes(app);     // User authentication (signin, signup, profile)
 CourseRoutes(app);   // Course CRUD operations + nested modules/assignments
@@ -53,4 +104,6 @@ app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
   console.log(`Lab5 exercises available at: http://localhost:${port}/lab5/welcome`);
   console.log(`Kambaz API available at: http://localhost:${port}/api`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`NETLIFY_URL: ${process.env.NETLIFY_URL || 'not set'}`);
 });
