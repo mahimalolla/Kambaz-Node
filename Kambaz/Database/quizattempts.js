@@ -2,7 +2,7 @@ export default [
   {
     _id: "attempt1",
     quizId: "quiz1",
-    userId: "65f8d2a5e4b0c1234567890", // Replace with actual user ID from your users collection
+    userId: "122", // Bob Smith (STUDENT)
     courseId: "RS101",
     answers: {
       q1: 0, // correct - "A JavaScript extension syntax"
@@ -20,7 +20,7 @@ export default [
   {
     _id: "attempt2", 
     quizId: "quiz1",
-    userId: "65f8d2a5e4b0c1234567891", // Replace with actual user ID from your users collection
+    userId: "124", // Diana Prince (STUDENT)
     courseId: "RS101", 
     answers: {
       q1: 1, // incorrect - chose "A CSS framework"
@@ -38,7 +38,7 @@ export default [
   {
     _id: "attempt3",
     quizId: "quiz2", 
-    userId: "65f8d2a5e4b0c1234567890", // Same user taking different quiz
+    userId: "122", // Bob Smith taking different quiz
     courseId: "RS101",
     answers: {
       q5: 2, // correct - "Float" is not a JS data type
@@ -57,7 +57,7 @@ export default [
   {
     _id: "attempt4",
     quizId: "quiz2",
-    userId: "65f8d2a5e4b0c1234567890", // Same user, second attempt
+    userId: "122", // Bob Smith, second attempt (quiz allows multiple attempts)
     courseId: "RS101",
     answers: {
       q5: 2, // correct
@@ -76,7 +76,7 @@ export default [
   {
     _id: "attempt5",
     quizId: "quiz1",
-    userId: "65f8d2a5e4b0c1234567892", // Different student
+    userId: "125", // Tony Stark (STUDENT)
     courseId: "RS101",
     answers: {
       q1: 0, // correct
@@ -94,19 +94,38 @@ export default [
   {
     _id: "attempt6",
     quizId: "quiz1", 
-    userId: "65f8d2a5e4b0c1234567893", // Another student
+    userId: "124", // Diana Prince, second attempt (if quiz allowed multiple attempts)
     courseId: "RS101",
     answers: {
-      q1: 2, // incorrect - chose "A database query language"
+      q1: 0, // correct this time
       q2: "true", // correct
       q3: "usestate", // correct (alternative spelling)
       q4: 0 // correct
     },
-    score: 7,
+    score: 10,
     maxScore: 10,
-    percentage: 70,
-    timeSpent: 19, // minutes
-    attemptNumber: 1,
+    percentage: 100,
+    timeSpent: 12, // minutes - much faster on second try
+    attemptNumber: 2,
     submittedAt: "2025-06-03T11:30:00Z"
+  },
+  {
+    _id: "attempt7",
+    quizId: "quiz2",
+    userId: "125", // Tony Stark trying quiz2
+    courseId: "RS101",
+    answers: {
+      q5: 0, // incorrect - chose "String"
+      q6: "true", // incorrect - said JS is compiled
+      q7: "==", // incorrect - used == instead of ===
+      q8: 1, // incorrect - chose "Data Object Management" 
+      q9: "true" // incorrect
+    },
+    score: 0,
+    maxScore: 15,
+    percentage: 0,
+    timeSpent: 30, // minutes - took full time but got everything wrong
+    attemptNumber: 1,
+    submittedAt: "2025-06-17T14:00:00Z"
   }
 ];
