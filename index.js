@@ -6,6 +6,7 @@ import Lab5 from "./Lab5/index.js";
 import UserRoutes from "./Kambaz/Users/routes.js";
 import CourseRoutes from "./Kambaz/Courses/routes.js";
 import ModuleRoutes from "./Kambaz/Modules/routes.js";
+import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js"; // ADD THIS LINE
 
 const app = express();
 
@@ -98,6 +99,7 @@ Lab5(app);           // Lab 5 exercises (PathParameters, QueryParameters, etc.)
 UserRoutes(app);     // User authentication (signin, signup, profile)
 CourseRoutes(app);   // Course CRUD operations + nested modules/assignments
 ModuleRoutes(app);   // Module CRUD operations
+EnrollmentRoutes(app); // ADD THIS LINE - Enrollment operations
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
