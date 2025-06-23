@@ -1,12 +1,30 @@
 import "dotenv/config";
 import express from "express";
+import mongoose from "mongoose"; 
 import session from "express-session";
 import cors from "cors";
 import Lab5 from "./Lab5/index.js";
 import UserRoutes from "./Kambaz/Users/routes.js";
 import CourseRoutes from "./Kambaz/Courses/routes.js";
 import ModuleRoutes from "./Kambaz/Modules/routes.js";
-import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js"; // ADD THIS LINE
+import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js";
+
+// Connect to MongoDB - ADD THIS SECTION
+const CONNECTION_STRING = process.env.MONGO_CONNECTION_STRING || "mongodb://127.0.0.1:27017/kambaz";
+mongoose.connect(CONNECTION_STRING);
+
+// Log MongoDB connection status
+mongoose.connection.on('connected', () => {
+  console.log('✅ Connected to MongoDB');
+});
+
+mongoose.connection.on('error', (err) => {
+  console.error('❌ MongoDB connection error:', err);
+});
+
+mongoose.connection.on('disconnected', () => {
+  console.log('❌ Disconnected from MongoDB');
+});
 
 const app = express();
 
@@ -75,7 +93,8 @@ app.get('/', (req, res) => {
     message: 'Welcome to Full Stack Development!',
     timestamp: new Date().toISOString(),
     cors: 'enabled',
-    allowedOrigins: allowedOrigins
+    allowedOrigins: allowedOrigins,
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'  // ADD THIS LINE
   });
 });
 
@@ -90,7 +109,8 @@ app.get('/api/test', (req, res) => {
     timestamp: new Date().toISOString(),
     cors: 'enabled',
     session: req.session ? 'active' : 'inactive',
-    origin: req.get('origin') || 'no-origin'
+    origin: req.get('origin') || 'no-origin',
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'  // ADD THIS LINE
   });
 });
 
@@ -99,7 +119,7 @@ Lab5(app);           // Lab 5 exercises (PathParameters, QueryParameters, etc.)
 UserRoutes(app);     // User authentication (signin, signup, profile)
 CourseRoutes(app);   // Course CRUD operations + nested modules/assignments
 ModuleRoutes(app);   // Module CRUD operations
-EnrollmentRoutes(app); // ADD THIS LINE - Enrollment operations
+EnrollmentRoutes(app); // Enrollment operations
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
@@ -108,4 +128,5 @@ app.listen(port, () => {
   console.log(`Kambaz API available at: http://localhost:${port}/api`);
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`NETLIFY_URL: ${process.env.NETLIFY_URL || 'not set'}`);
+  console.log(`MongoDB: ${mongoose.connection.readyState === 1 ? '✅ Connected' : '⏳ Connecting...'}`);
 });
