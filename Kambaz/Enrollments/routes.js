@@ -1,11 +1,10 @@
-// Kambaz/Enrollments/routes.js
 import * as enrollmentsDao from "./dao.js";
 
 export default function EnrollmentRoutes(app) {
     // Get all enrollments
-    app.get("/api/enrollments", (req, res) => {
+    app.get("/api/enrollments", async (req, res) => {
         try {
-            const enrollments = enrollmentsDao.findAllEnrollments();
+            const enrollments = await enrollmentsDao.findAllEnrollments();
             res.json(enrollments);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -13,10 +12,10 @@ export default function EnrollmentRoutes(app) {
     });
 
     // Get enrollments for a specific user
-    app.get("/api/enrollments/user/:userId", (req, res) => {
+    app.get("/api/enrollments/user/:userId", async (req, res) => {
         try {
             const { userId } = req.params;
-            const enrollments = enrollmentsDao.findEnrollmentsForUser(userId);
+            const enrollments = await enrollmentsDao.findEnrollmentsForUser(userId);
             res.json(enrollments);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -24,10 +23,10 @@ export default function EnrollmentRoutes(app) {
     });
 
     // Get courses for a user (with course details)
-    app.get("/api/enrollments/user/:userId/courses", (req, res) => {
+    app.get("/api/enrollments/user/:userId/courses", async (req, res) => {
         try {
             const { userId } = req.params;
-            const courses = enrollmentsDao.getCoursesForUser(userId);
+            const courses = await enrollmentsDao.getCoursesForUser(userId);
             res.json(courses);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -35,10 +34,10 @@ export default function EnrollmentRoutes(app) {
     });
 
     // Get enrollments for a specific course
-    app.get("/api/enrollments/course/:courseId", (req, res) => {
+    app.get("/api/enrollments/course/:courseId", async (req, res) => {
         try {
             const { courseId } = req.params;
-            const enrollments = enrollmentsDao.findEnrollmentsForCourse(courseId);
+            const enrollments = await enrollmentsDao.findEnrollmentsForCourse(courseId);
             res.json(enrollments);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -46,10 +45,10 @@ export default function EnrollmentRoutes(app) {
     });
 
     // Get users enrolled in a course (with user details)
-    app.get("/api/enrollments/course/:courseId/users", (req, res) => {
+    app.get("/api/enrollments/course/:courseId/users", async (req, res) => {
         try {
             const { courseId } = req.params;
-            const users = enrollmentsDao.getUsersEnrolledInCourse(courseId);
+            const users = await enrollmentsDao.getUsersEnrolledInCourse(courseId);
             res.json(users);
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -57,10 +56,10 @@ export default function EnrollmentRoutes(app) {
     });
 
     // Check if user is enrolled in course
-    app.get("/api/enrollments/check/:userId/:courseId", (req, res) => {
+    app.get("/api/enrollments/check/:userId/:courseId", async (req, res) => {
         try {
             const { userId, courseId } = req.params;
-            const isEnrolled = enrollmentsDao.isUserEnrolledInCourse(userId, courseId);
+            const isEnrolled = await enrollmentsDao.isUserEnrolledInCourse(userId, courseId);
             res.json({ isEnrolled });
         } catch (error) {
             res.status(500).json({ error: error.message });
@@ -68,7 +67,7 @@ export default function EnrollmentRoutes(app) {
     });
 
     // Enroll user in course
-    app.post("/api/enrollments", (req, res) => {
+    app.post("/api/enrollments", async (req, res) => {
         try {
             const { userId, courseId } = req.body;
             
@@ -76,7 +75,7 @@ export default function EnrollmentRoutes(app) {
                 return res.status(400).json({ error: "userId and courseId are required" });
             }
             
-            const enrollment = enrollmentsDao.enrollUserInCourse(userId, courseId);
+            const enrollment = await enrollmentsDao.enrollUserInCourse(userId, courseId);
             res.status(201).json(enrollment);
         } catch (error) {
             res.status(400).json({ error: error.message });
@@ -84,10 +83,10 @@ export default function EnrollmentRoutes(app) {
     });
 
     // Unenroll user from course
-    app.delete("/api/enrollments/:userId/:courseId", (req, res) => {
+    app.delete("/api/enrollments/:userId/:courseId", async (req, res) => {
         try {
             const { userId, courseId } = req.params;
-            const removedEnrollment = enrollmentsDao.unenrollUserFromCourse(userId, courseId);
+            const removedEnrollment = await enrollmentsDao.unenrollUserFromCourse(userId, courseId);
             
             if (!removedEnrollment) {
                 return res.status(404).json({ error: "Enrollment not found" });
@@ -100,10 +99,10 @@ export default function EnrollmentRoutes(app) {
     });
 
     // Delete enrollment by ID
-    app.delete("/api/enrollments/:enrollmentId", (req, res) => {
+    app.delete("/api/enrollments/:enrollmentId", async (req, res) => {
         try {
             const { enrollmentId } = req.params;
-            const removedEnrollment = enrollmentsDao.deleteEnrollment(enrollmentId);
+            const removedEnrollment = await enrollmentsDao.deleteEnrollment(enrollmentId);
             
             if (!removedEnrollment) {
                 return res.status(404).json({ error: "Enrollment not found" });
