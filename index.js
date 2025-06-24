@@ -9,11 +9,11 @@ import CourseRoutes from "./Kambaz/Courses/routes.js";
 import ModuleRoutes from "./Kambaz/Modules/routes.js";
 import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js";
 
-// Connect to MongoDB - ADD THIS SECTION
+
 const CONNECTION_STRING = process.env.MONGO_CONNECTION_STRING || "mongodb://127.0.0.1:27017/kambaz";
 mongoose.connect(CONNECTION_STRING);
 
-// Log MongoDB connection status
+
 mongoose.connection.on('connected', () => {
   console.log('✅ Connected to MongoDB');
 });
@@ -94,7 +94,7 @@ app.get('/', (req, res) => {
     timestamp: new Date().toISOString(),
     cors: 'enabled',
     allowedOrigins: allowedOrigins,
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'  // ADD THIS LINE
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   });
 });
 
@@ -110,8 +110,204 @@ app.get('/api/test', (req, res) => {
     cors: 'enabled',
     session: req.session ? 'active' : 'inactive',
     origin: req.get('origin') || 'no-origin',
-    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'  // ADD THIS LINE
+    mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   });
+});
+
+// TEMPORARY ROUTE TO POPULATE TEST DATA
+app.get('/api/populate-test-data', async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    
+    // Clear existing data (optional - comment out if you want to keep existing data)
+    await db.collection('users').deleteMany({});
+    await db.collection('courses').deleteMany({});
+    await db.collection('modules').deleteMany({});
+    await db.collection('enrollments').deleteMany({});
+
+    // Create test users
+    const testUsers = [
+      {
+        _id: 'user-alice-123',
+        username: 'alice',
+        password: 'alice123',
+        firstName: 'Alice',
+        lastName: 'Johnson',
+        email: 'alice@northeastern.edu',
+        role: 'STUDENT',
+        section: 'S101',
+        loginId: '001234561S'
+      },
+      {
+        _id: 'user-bob-456',
+        username: 'bob',
+        password: 'bob123',
+        firstName: 'Bob',
+        lastName: 'Smith',
+        email: 'bob@northeastern.edu',
+        role: 'FACULTY',
+        section: 'S101',
+        loginId: '001234562F'
+      },
+      {
+        _id: 'user-charlie-789',
+        username: 'charlie',
+        password: 'charlie123',
+        firstName: 'Charlie',
+        lastName: 'Wilson',
+        email: 'charlie@northeastern.edu',
+        role: 'ADMIN',
+        section: 'S101',
+        loginId: '001234563A'
+      }
+    ];
+
+    const userResult = await db.collection('users').insertMany(testUsers);
+    
+    // Create test courses
+    const testCourses = [
+      {
+        _id: 'course-cs5610',
+        name: 'Web Development',
+        number: 'CS5610',
+        credits: 4,
+        description: 'Learn modern web development with React, Node.js, and MongoDB'
+      },
+      {
+        _id: 'course-cs5500',
+        name: 'Software Engineering',
+        number: 'CS5500',
+        credits: 4,
+        description: 'Software engineering principles and practices'
+      },
+      {
+        _id: 'course-cs5800',
+        name: 'Algorithms',
+        number: 'CS5800',
+        credits: 4,
+        description: 'Design and analysis of algorithms'
+      }
+    ];
+
+    const courseResult = await db.collection('courses').insertMany(testCourses);
+
+    // Create test modules
+    const testModules = [
+      {
+        _id: 'module-react-101',
+        name: 'Introduction to React',
+        description: 'Learn the basics of React components, state, and props',
+        course: 'course-cs5610'
+      },
+      {
+        _id: 'module-node-101',
+        name: 'Node.js Fundamentals',
+        description: 'Server-side JavaScript with Node.js and Express',
+        course: 'course-cs5610'
+      },
+      {
+        _id: 'module-mongo-101',
+        name: 'MongoDB Basics',
+        description: 'NoSQL database fundamentals with MongoDB',
+        course: 'course-cs5610'
+      },
+      {
+        _id: 'module-testing-101',
+        name: 'Software Testing',
+        description: 'Unit testing, integration testing, and test-driven development',
+        course: 'course-cs5500'
+      },
+      {
+        _id: 'module-sorting-101',
+        name: 'Sorting Algorithms',
+        description: 'Bubble sort, merge sort, quick sort, and their analysis',
+        course: 'course-cs5800'
+      }
+    ];
+
+    const moduleResult = await db.collection('modules').insertMany(testModules);
+
+    // Create test enrollments
+    const testEnrollments = [
+      {
+        _id: 'enroll-alice-cs5610',
+        user: 'user-alice-123',
+        course: 'course-cs5610',
+        status: 'ENROLLED',
+        enrollmentDate: new Date()
+      },
+      {
+        _id: 'enroll-alice-cs5500',
+        user: 'user-alice-123',
+        course: 'course-cs5500',
+        status: 'ENROLLED',
+        enrollmentDate: new Date()
+      },
+      {
+        _id: 'enroll-bob-cs5610',
+        user: 'user-bob-456',
+        course: 'course-cs5610',
+        status: 'ENROLLED',
+        enrollmentDate: new Date()
+      },
+      {
+        _id: 'enroll-charlie-all',
+        user: 'user-charlie-789',
+        course: 'course-cs5610',
+        status: 'ENROLLED',
+        enrollmentDate: new Date()
+      }
+    ];
+
+    const enrollmentResult = await db.collection('enrollments').insertMany(testEnrollments);
+
+    res.json({
+      message: 'Test data populated successfully! 🎉',
+      summary: {
+        users: `${userResult.insertedCount} users created`,
+        courses: `${courseResult.insertedCount} courses created`,
+        modules: `${moduleResult.insertedCount} modules created`,
+        enrollments: `${enrollmentResult.insertedCount} enrollments created`
+      },
+      testAccounts: {
+        student: { username: 'alice', password: 'alice123', role: 'STUDENT' },
+        faculty: { username: 'bob', password: 'bob123', role: 'FACULTY' },
+        admin: { username: 'charlie', password: 'charlie123', role: 'ADMIN' }
+      },
+      nextSteps: [
+        'Visit /api/users to see all users',
+        'Visit /api/courses to see all courses',
+        'Try signing up/signing in with the test accounts',
+        'Test course enrollment functionality'
+      ]
+    });
+
+  } catch (error) {
+    console.error('Error populating test data:', error);
+    res.status(500).json({ 
+      error: 'Failed to populate test data', 
+      details: error.message 
+    });
+  }
+});
+
+// ROUTE TO CLEAR ALL DATA (for testing)
+app.get('/api/clear-all-data', async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    
+    await db.collection('users').deleteMany({});
+    await db.collection('courses').deleteMany({});
+    await db.collection('modules').deleteMany({});
+    await db.collection('enrollments').deleteMany({});
+
+    res.json({
+      message: 'All data cleared successfully! 🧹',
+      note: 'You can repopulate with /api/populate-test-data'
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 // Routes
@@ -129,4 +325,7 @@ app.listen(port, () => {
   console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`NETLIFY_URL: ${process.env.NETLIFY_URL || 'not set'}`);
   console.log(`MongoDB: ${mongoose.connection.readyState === 1 ? '✅ Connected' : '⏳ Connecting...'}`);
+  console.log(`\n🧪 Test routes:`);
+  console.log(`   Populate data: http://localhost:${port}/api/populate-test-data`);
+  console.log(`   Clear data: http://localhost:${port}/api/clear-all-data`);
 });
