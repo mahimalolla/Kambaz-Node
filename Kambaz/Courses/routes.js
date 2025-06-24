@@ -1,7 +1,7 @@
 import * as dao from "./dao.js";
 import * as modulesDao from "../Modules/dao.js";
 import * as enrollmentsDao from "../Enrollments/dao.js";
- import * as quizzesDao from "../Quizzes/dao.js"; 
+// import * as quizzesDao from "../Quizzes/dao.js"; // COMMENTED OUT - not implemented yet
 import { v4 as uuidv4 } from "uuid";
 
 export default function CourseRoutes(app) {
@@ -123,7 +123,7 @@ export default function CourseRoutes(app) {
 
   // Get all assignments for a course - TEMPORARILY RETURN EMPTY ARRAY
   app.get("/api/courses/:courseId/assignments", (req, res) => {
-    res.json([]); // Return empty array until you implement assignments in MongoDB
+    res.json([]);
   });
 
   // Create assignment for a course - TEMPORARILY RETURN ERROR
@@ -131,20 +131,11 @@ export default function CourseRoutes(app) {
     res.status(501).json({ message: "Assignments not yet implemented with MongoDB" });
   });
 
- 
-  app.get("/api/courses/:courseId/quizzes", async (req, res) => {
-    try {
-      const { courseId } = req.params;
-      const quizzes = await quizzesDao.findQuizzesByCourse(courseId);
-      res.json(quizzes);
-    } catch (error) {
-      console.error("Error fetching quizzes:", error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-  
+  // ================================
+  // QUIZ ROUTES (temporarily disabled)
+  // ================================
 
-  // Temporarily return empty array for quizzes
+  // Temporarily return empty array for quizzes (REMOVED DUPLICATE ROUTE)
   app.get("/api/courses/:courseId/quizzes", (req, res) => {
     res.json([]);
   });
