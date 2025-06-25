@@ -87,10 +87,15 @@ export async function getCoursesForUser(userId) {
   }));
 }
 
-// These are the core functions needed by your user routes
 export async function findCoursesForUser(userId) {
   const enrollments = await model.find({ user: userId }).populate("course");
-  return enrollments.map((enrollment) => enrollment.course);
+  console.log("Raw enrollments:", enrollments); // Debug log
+  
+  // Filter out any null courses before mapping
+  const validEnrollments = enrollments.filter(enrollment => enrollment.course !== null);
+  console.log("Valid enrollments:", validEnrollments); // Debug log
+  
+  return validEnrollments.map((enrollment) => enrollment.course);
 }
 
 export async function findUsersForCourse(courseId) {
