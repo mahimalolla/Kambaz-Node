@@ -9,6 +9,7 @@ import CourseRoutes from "./Kambaz/Courses/routes.js";
 import ModuleRoutes from "./Kambaz/Modules/routes.js";
 import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js";
 import AssignmentRoutes from "./Kambaz/Assignments/routes.js";
+import QuizRoutes from "./Kambaz/Quizzes/routes.js"; // 👈 ADD THIS LINE
 
 
 const CONNECTION_STRING = process.env.MONGO_CONNECTION_STRING || "mongodb://127.0.0.1:27017/kambaz";
@@ -115,7 +116,7 @@ app.get('/api/test', (req, res) => {
   });
 });
 
-// TEMPORARY ROUTE TO POPULATE TEST DATA
+// TEMPORARY ROUTE TO POPULATE TEST DATA (including quiz test data)
 app.get('/api/populate-test-data', async (req, res) => {
   try {
     const db = mongoose.connection.db;
@@ -278,6 +279,7 @@ app.get('/api/populate-test-data', async (req, res) => {
       nextSteps: [
         'Visit /api/users to see all users',
         'Visit /api/courses to see all courses',
+        'Visit /api/quizzes/test to test quiz routes',
         'Try signing up/signing in with the test accounts',
         'Test course enrollment functionality'
       ]
@@ -318,6 +320,7 @@ CourseRoutes(app);   // Course CRUD operations + nested modules/assignments
 ModuleRoutes(app);   // Module CRUD operations
 EnrollmentRoutes(app); // Enrollment operations
 AssignmentRoutes(app); //Assignment operations
+QuizRoutes(app);     // 👈 ADD THIS LINE - Quiz operations
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
@@ -330,4 +333,5 @@ app.listen(port, () => {
   console.log(`\n🧪 Test routes:`);
   console.log(`   Populate data: http://localhost:${port}/api/populate-test-data`);
   console.log(`   Clear data: http://localhost:${port}/api/clear-all-data`);
+  console.log(`   Quiz routes test: http://localhost:${port}/api/quizzes/test`); // 👈 ADD THIS LINE
 });
