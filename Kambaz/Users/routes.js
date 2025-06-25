@@ -4,16 +4,33 @@ import * as enrollmentsDao from "../Enrollments/dao.js";
 
 export default function UserRoutes(app) {
   // Sign in user
-  const signin = async (req, res) => {
+const signin = async (req, res) => {
+  try {
+    console.log('🔍 Signin attempt:', req.body.username);
+    
     const { username, password } = req.body;
-    const currentUser = await dao.findUserByCredentials(username, password);
+    
+    // Add timeout to prevent hanging
+    const currentUser = await Promise.race([
+      dao.findUserByCredentials(username, password),
+      new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Database timeout')), 10000)
+      )
+    ]);
+    
     if (currentUser) {
       req.session["currentUser"] = currentUser;
+      console.log('✅ Signin successful:', currentUser.username);
       res.json(currentUser);
     } else {
+      console.log('❌ Invalid credentials for:', username);
       res.status(401).json({ message: "Unable to login. Try again later." });
     }
-  };
+  } catch (error) {
+    console.error('❌ Signin error:', error);
+    res.status(500).json({ message: "Server error during signin. Please try again." });
+  }
+};
 
   // Sign up new user
   const signup = async (req, res) => {
