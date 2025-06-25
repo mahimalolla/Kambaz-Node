@@ -1,6 +1,7 @@
 import * as dao from "./dao.js";
 import * as modulesDao from "../Modules/dao.js";
 import * as enrollmentsDao from "../Enrollments/dao.js";
+import * as assignmentsDao from "../Assignments/dao.js"; // ✅ ADDED ASSIGNMENTS DAO
 // import * as quizzesDao from "../Quizzes/dao.js"; // COMMENTED OUT - not implemented yet
 import { v4 as uuidv4 } from "uuid";
 
@@ -118,17 +119,35 @@ export default function CourseRoutes(app) {
   });
 
   // ================================
-  // ASSIGNMENT ROUTES (temporarily disabled)
+  // ASSIGNMENT ROUTES (✅ NOW IMPLEMENTED WITH MONGODB)
   // ================================
 
-  // Get all assignments for a course - TEMPORARILY RETURN EMPTY ARRAY
-  app.get("/api/courses/:courseId/assignments", (req, res) => {
-    res.json([]);
+  // Get all assignments for a course
+  app.get("/api/courses/:courseId/assignments", async (req, res) => {
+    try {
+      const { courseId } = req.params;
+      const assignments = await assignmentsDao.findAssignmentsForCourse(courseId);
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching assignments:", error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
-  // Create assignment for a course - TEMPORARILY RETURN ERROR
-  app.post("/api/courses/:courseId/assignments", (req, res) => {
-    res.status(501).json({ message: "Assignments not yet implemented with MongoDB" });
+  // Create assignment for a course
+  app.post("/api/courses/:courseId/assignments", async (req, res) => {
+    try {
+      const { courseId } = req.params;
+      const assignment = {
+        ...req.body,
+        course: courseId,
+      };
+      const newAssignment = await assignmentsDao.createAssignment(assignment);
+      res.json(newAssignment);
+    } catch (error) {
+      console.error("Error creating assignment:", error);
+      res.status(500).json({ error: error.message });
+    }
   });
 
   // ================================
