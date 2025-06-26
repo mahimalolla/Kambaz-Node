@@ -837,3 +837,326 @@ export default function QuizRoutes(app) {
 
   console.log('✅ Enhanced quiz routes initialized successfully');
 }
+
+// 🔧 ADD THESE DEBUG ROUTES TO YOUR routes.js FILE
+
+// ================================
+// COMPREHENSIVE DEBUG ROUTES
+// ================================
+
+// Test complete quiz workflow
+app.get("/api/debug/test-quiz-workflow", async (req, res) => {
+  try {
+    console.log('🧪 Starting complete quiz workflow test...');
+    
+    const result = await quizDao.testCompleteQuizWorkflow();
+    
+    res.json({
+      message: 'Quiz workflow test completed',
+      timestamp: new Date().toISOString(),
+      ...result
+    });
+    
+  } catch (error) {
+    console.error('💥 Quiz workflow test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
+
+// Test database operations for a specific quiz
+app.get("/api/debug/test-quiz/:quizId", async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    console.log('🧪 Testing operations for quiz:', quizId);
+    
+    // Test 1: Check if quiz exists
+    const existsTest = await quizDao.testQuizExists(quizId);
+    
+    // Test 2: Try simple update
+    const updateTest = await quizDao.testSimpleQuizUpdate(quizId);
+    
+    // Test 3: Try adding a test question
+    const questionTest = await quizDao.forceAddQuestionDirect(quizId, {
+      type: 'multiple-choice',
+      title: 'Test Question',
+      points: 1,
+      question: 'This is a test question',
+      choices: ['A', 'B', 'C', 'D'],
+      correctAnswer: 0
+    });
+    
+    res.json({
+      quizId: quizId,
+      tests: {
+        existence: {
+          exists: !!existsTest,
+          quiz: existsTest ? {
+            id: existsTest._id,
+            title: existsTest.title,
+            questionCount: existsTest.questions?.length || 0
+          } : null
+        },
+        simpleUpdate: updateTest,
+        questionAdd: questionTest
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('💥 Quiz test failed:', error);
+    res.status(500).json({
+      error: error.message,
+      quizId: req.params.quizId
+    });
+  }
+});
+
+// Enhanced database health check
+app.get("/api/debug/database-detailed", async (req, res) => {
+  try {
+    console.log('🔍 Detailed database health check...');
+    
+    const db = mongoose.connection.db;
+    
+    // Basic connection test
+    const pingResult = await db.admin().ping();
+    
+    // Collections info
+    const collections = await db.listCollections().toArray();
+    
+    // Quiz collection stats
+    const quizStats = await db.collection('quizzes').stats();
+    const quizCount = await db.collection('quizzes').countDocuments();
+    
+    // Sample quiz for testing
+    const sampleQuiz = await db.collection('quizzes').findOne({});
+    
+    // Test operations if we have a quiz
+    let operationTests = null;
+    if (sampleQuiz) {
+      try {
+        // Test simple read
+        const readTest = await db.collection('quizzes').findOne({ _id: sampleQuiz._id });
+        
+        // Test simple update
+        const updateResult = await db.collection('quizzes').updateOne(
+          { _id: sampleQuiz._id },
+          { $set: { lastTestedAt: new Date().toISOString() } }
+        );
+        
+        operationTests = {
+          read: !!readTest,
+          update: {
+            matched: updateResult.matchedCount,
+            modified: updateResult.modifiedCount,
+            success: updateResult.modifiedCount === 1
+          }
+        };
+      } catch (opError) {
+        operationTests = {
+          error: opError.message
+        };
+      }
+    }
+    
+    const healthData = {
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      connection: {
+        ping: pingResult,
+        readyState: mongoose.connection.readyState,
+        host: mongoose.connection.host,
+        port: mongoose.connection.port,
+        name: mongoose.connection.name
+      },
+      collections: {
+        total: collections.length,
+        names: collections.map(c => c.name),
+        quizzes: {
+          exists: collections.some(c => c.name === 'quizzes'),
+          count: quizCount,
+          stats: {
+            size: quizStats.size,
+            avgObjSize: quizStats.avgObjSize,
+            indexes: quizStats.nindexes
+          }
+        }
+      },
+      sampleQuiz: sampleQuiz ? {
+        id: sampleQuiz._id,
+        title: sampleQuiz.title,
+        questionCount: sampleQuiz.questions?.length || 0,
+        hasQuestions: Array.isArray(sampleQuiz.questions)
+      } : null,
+      operationTests,
+      server: {
+        nodeVersion: process.version,
+        platform: process.platform,
+        memory: process.memoryUsage(),
+        uptime: process.uptime()
+      }
+    };
+    
+    console.log('🏥 Detailed health check completed');
+    res.json(healthData);
+    
+  } catch (error) {
+    console.error('💥 Detailed health check failed:', error);
+    res.status(503).json({
+      status: 'unhealthy',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+});
+
+// Test specific quiz update operation
+app.post("/api/debug/test-update/:quizId", async (req, res) => {
+  try {
+    const { quizId } = req.params;
+    const updateData = req.body;
+    
+    console.log('🧪 Testing quiz update:', { quizId, updateData });
+    
+    // Test using the DAO
+    const result = await quizDao.updateQuiz(quizId, updateData);
+    
+    res.json({
+      success: !!result,
+      quizId: quizId,
+      updateData: updateData,
+      result: result ? {
+        id: result._id,
+        title: result.title,
+        updatedAt: result.updatedAt
+      } : null,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('💥 Update test failed:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      quizId: req.params.quizId
+    });
+  }
+});
+
+// List all quizzes with basic info
+app.get("/api/debug/list-quizzes", async (req, res) => {
+  try {
+    console.log('📋 Listing all quizzes for debugging...');
+    
+    const db = mongoose.connection.db;
+    const quizzes = await db.collection('quizzes').find({}).toArray();
+    
+    const quizList = quizzes.map(quiz => ({
+      id: quiz._id,
+      title: quiz.title,
+      courseId: quiz.courseId,
+      published: quiz.published,
+      questionCount: quiz.questions?.length || 0,
+      points: quiz.points || 0,
+      createdAt: quiz.createdAt,
+      updatedAt: quiz.updatedAt
+    }));
+    
+    res.json({
+      total: quizzes.length,
+      quizzes: quizList,
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('💥 Error listing quizzes:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Test network connectivity from server
+app.get("/api/debug/network-test", (req, res) => {
+  const testData = {
+    timestamp: new Date().toISOString(),
+    server: {
+      nodejs: process.version,
+      platform: process.platform,
+      uptime: process.uptime(),
+      memory: process.memoryUsage()
+    },
+    request: {
+      method: req.method,
+      url: req.url,
+      headers: {
+        origin: req.headers.origin,
+        userAgent: req.headers['user-agent'],
+        contentType: req.headers['content-type']
+      }
+    },
+    cors: {
+      origin: req.headers.origin,
+      allowed: true // If this response comes back, CORS is working
+    },
+    database: {
+      connected: mongoose.connection.readyState === 1,
+      state: mongoose.connection.readyState,
+      host: mongoose.connection.host,
+      port: mongoose.connection.port
+    }
+  };
+  
+  console.log('🌐 Network test requested from:', req.headers.origin);
+  res.json(testData);
+});
+
+// Force create a test quiz for debugging
+app.post("/api/debug/create-test-quiz", async (req, res) => {
+  try {
+    console.log('🧪 Creating test quiz for debugging...');
+    
+    const testQuiz = {
+      title: `Debug Test Quiz ${Date.now()}`,
+      courseId: req.body.courseId || 'debug-course',
+      description: 'This is a test quiz created for debugging purposes',
+      quizType: 'Graded Quiz',
+      assignmentGroup: 'Quizzes',
+      shuffleAnswers: true,
+      timeLimit: 20,
+      multipleAttempts: false,
+      attemptLimit: 1,
+      published: false
+    };
+    
+    const createdQuiz = await quizDao.createQuiz(testQuiz);
+    
+    res.json({
+      success: true,
+      quiz: {
+        id: createdQuiz._id,
+        title: createdQuiz.title,
+        courseId: createdQuiz.courseId
+      },
+      message: 'Test quiz created successfully',
+      timestamp: new Date().toISOString(),
+      instructions: [
+        `Use this quiz ID for testing: ${createdQuiz._id}`,
+        `Test URL: /api/debug/test-quiz/${createdQuiz._id}`,
+        `Update test: POST /api/debug/test-update/${createdQuiz._id}`,
+        `Remember to delete this test quiz when done!`
+      ]
+    });
+    
+  } catch (error) {
+    console.error('💥 Error creating test quiz:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+console.log('🧪 Debug routes added successfully!');
