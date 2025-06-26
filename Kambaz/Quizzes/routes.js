@@ -3,6 +3,22 @@ import * as quizDao from "./dao.js";
 export default function QuizRoutes(app) {
 
   // ================================
+  // MIDDLEWARE FOR DEBUGGING ALL QUIZ ROUTES
+  // ================================
+  
+  // Add this middleware to log ALL requests to quiz routes
+  app.use('/api/courses/:courseId/quizzes*', (req, res, next) => {
+    console.log('🌐 QUIZ ROUTE HIT:', {
+      method: req.method,
+      url: req.url,
+      params: req.params,
+      query: req.query,
+      hasBody: !!req.body && Object.keys(req.body).length > 0
+    });
+    next();
+  });
+
+  // ================================
   // DEBUG ROUTES
   // ================================
 
@@ -67,143 +83,10 @@ export default function QuizRoutes(app) {
   });
 
   // ================================
-  // QUIZ CRUD ROUTES
+  // SPECIFIC QUIZ ROUTES (MUST COME BEFORE GENERAL ONES)
   // ================================
 
-  // Get all quizzes for a course
-  app.get("/api/courses/:courseId/quizzes", async (req, res) => {
-    try {
-      const { courseId } = req.params;
-      console.log('🔍 GET /quizzes for course:', courseId);
-      
-      const quizzes = await quizDao.findQuizzesByCourse(courseId);
-      console.log('📋 Found', quizzes.length, 'quizzes');
-      
-      res.json(quizzes);
-    } catch (error) {
-      console.error('💥 Error getting quizzes for course:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get specific quiz
-  app.get("/api/courses/:courseId/quizzes/:quizId", async (req, res) => {
-    try {
-      const { quizId, courseId } = req.params;
-      console.log('🔍 GET /quiz:', { quizId, courseId });
-      
-      const quiz = await quizDao.findQuizById(quizId);
-      if (!quiz) {
-        console.log('❌ Quiz not found:', quizId);
-        return res.status(404).json({ 
-          error: "Quiz not found",
-          quizId: quizId,
-          courseId: courseId 
-        });
-      }
-      
-      console.log('✅ Quiz found:', quiz.title);
-      res.json(quiz);
-    } catch (error) {
-      console.error('💥 Error getting quiz:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Create new quiz
-  app.post("/api/courses/:courseId/quizzes", async (req, res) => {
-    try {
-      const { courseId } = req.params;
-      console.log('➕ POST /quizzes for course:', courseId);
-      console.log('📝 Request body:', Object.keys(req.body));
-      
-      const quizData = {
-        ...req.body,
-        courseId,
-        // Set defaults from requirements
-        quizType: req.body.quizType || "Graded Quiz",
-        assignmentGroup: req.body.assignmentGroup || "Quizzes",
-        shuffleAnswers: req.body.shuffleAnswers !== undefined ? req.body.shuffleAnswers : true,
-        timeLimit: req.body.timeLimit || 20,
-        multipleAttempts: req.body.multipleAttempts || false,
-        attemptLimit: req.body.attemptLimit || 1,
-        showCorrectAnswers: req.body.showCorrectAnswers || "Immediately",
-        oneQuestionAtATime: req.body.oneQuestionAtATime !== undefined ? req.body.oneQuestionAtATime : true,
-        webcamRequired: req.body.webcamRequired || false,
-        lockQuestionsAfterAnswering: req.body.lockQuestionsAfterAnswering || false,
-        accessCode: req.body.accessCode || "",
-        title: req.body.title || `New Quiz`,
-        description: req.body.description || "",
-        points: 0,
-        questions: []
-      };
-      
-      console.log('📋 Creating quiz with data:', {
-        title: quizData.title,
-        courseId: quizData.courseId,
-        quizType: quizData.quizType
-      });
-      
-      const newQuiz = await quizDao.createQuiz(quizData);
-      console.log('✅ Successfully created quiz:', newQuiz._id);
-      
-      res.status(201).json(newQuiz);
-    } catch (error) {
-      console.error('💥 Error creating quiz:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Update quiz
-  app.put("/api/courses/:courseId/quizzes/:quizId", async (req, res) => {
-    try {
-      const { quizId, courseId } = req.params;
-      console.log('🔄 PUT /quiz:', { quizId, courseId });
-      console.log('📝 Update fields:', Object.keys(req.body));
-      
-      const updatedQuiz = await quizDao.updateQuiz(quizId, req.body);
-      if (!updatedQuiz) {
-        console.log('❌ Quiz not found for update:', quizId);
-        return res.status(404).json({ 
-          error: "Quiz not found",
-          quizId: quizId,
-          courseId: courseId 
-        });
-      }
-      
-      console.log('✅ Successfully updated quiz:', quizId);
-      res.json(updatedQuiz);
-    } catch (error) {
-      console.error('💥 Error updating quiz:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Delete quiz
-  app.delete("/api/courses/:courseId/quizzes/:quizId", async (req, res) => {
-    try {
-      const { quizId, courseId } = req.params;
-      console.log('🗑️ DELETE /quiz:', { quizId, courseId });
-      
-      const deleted = await quizDao.deleteQuiz(quizId);
-      if (!deleted) {
-        console.log('❌ Quiz not found for deletion:', quizId);
-        return res.status(404).json({ 
-          error: "Quiz not found",
-          quizId: quizId,
-          courseId: courseId 
-        });
-      }
-      
-      console.log('✅ Successfully deleted quiz:', quizId);
-      res.json({ message: "Quiz deleted successfully" });
-    } catch (error) {
-      console.error('💥 Error deleting quiz:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Publish/Unpublish quiz
+  // Publish/Unpublish quiz - SPECIFIC ROUTE
   app.patch("/api/courses/:courseId/quizzes/:quizId/publish", async (req, res) => {
     try {
       const { quizId, courseId } = req.params;
@@ -228,11 +111,124 @@ export default function QuizRoutes(app) {
     }
   });
 
+  // Quiz statistics - SPECIFIC ROUTE  
+  app.get("/api/courses/:courseId/quizzes/:quizId/stats", async (req, res) => {
+    try {
+      const { quizId, courseId } = req.params;
+      console.log('📊 GET /stats for quiz:', { quizId, courseId });
+      
+      const stats = await quizDao.getQuizStats(quizId);
+      console.log('📊 Generated stats:', stats);
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('💥 Error getting quiz stats:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // ================================
-  // QUESTION ROUTES
+  // QUIZ ATTEMPT ROUTES - SPECIFIC
   // ================================
 
-  // Add question to quiz
+  // Get user's attempts for a quiz - SPECIFIC ROUTE
+  app.get("/api/courses/:courseId/quizzes/:quizId/attempts/:userId", async (req, res) => {
+    try {
+      const { quizId, userId, courseId } = req.params;
+      console.log('🔍 GET /attempts for user:', { quizId, userId, courseId });
+      
+      const attempts = await quizDao.findAttemptsByQuizAndUser(quizId, userId);
+      console.log('📋 Found attempts:', attempts.length);
+      
+      res.json(attempts);
+    } catch (error) {
+      console.error('💥 Error getting user attempts:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get all attempts for a quiz - SPECIFIC ROUTE
+  app.get("/api/courses/:courseId/quizzes/:quizId/attempts", async (req, res) => {
+    try {
+      const { quizId, courseId } = req.params;
+      console.log('🔍 GET /attempts (all) for quiz:', { quizId, courseId });
+      
+      const attempts = await quizDao.findAllAttemptsByQuiz(quizId);
+      console.log('📋 Found total attempts:', attempts.length);
+      
+      res.json(attempts);
+    } catch (error) {
+      console.error('💥 Error getting all attempts:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Submit quiz attempt - SPECIFIC ROUTE
+  app.post("/api/courses/:courseId/quizzes/:quizId/attempts", async (req, res) => {
+    try {
+      const { quizId, courseId } = req.params;
+      const { userId, answers } = req.body;
+      
+      console.log('📝 POST /attempts:', { quizId, courseId, userId });
+      console.log('📋 Answers provided:', Object.keys(answers).length);
+      
+      // Get quiz to calculate score
+      const quiz = await quizDao.findQuizById(quizId);
+      if (!quiz) {
+        console.log('❌ Quiz not found for attempt:', quizId);
+        return res.status(404).json({ 
+          error: "Quiz not found",
+          quizId: quizId,
+          courseId: courseId
+        });
+      }
+      
+      // Check if student can take quiz (attempt limits, etc.)
+      const existingAttempts = await quizDao.findAttemptsByQuizAndUser(quizId, userId);
+      console.log('📊 Existing attempts:', existingAttempts.length);
+      
+      if (!quiz.multipleAttempts && existingAttempts.length > 0) {
+        console.log('❌ Multiple attempts not allowed');
+        return res.status(400).json({ error: "Multiple attempts not allowed" });
+      }
+      
+      if (quiz.multipleAttempts && existingAttempts.length >= quiz.attemptLimit) {
+        console.log('❌ Maximum attempts exceeded');
+        return res.status(400).json({ error: "Maximum attempts exceeded" });
+      }
+      
+      // Calculate score
+      const scoreResult = quizDao.calculateScore(quiz.questions, answers);
+      console.log('🧮 Score calculated:', scoreResult);
+      
+      const attemptData = {
+        quizId,
+        userId,
+        answers,
+        score: scoreResult.score,
+        maxScore: scoreResult.maxScore,
+        percentage: scoreResult.percentage,
+        timeSpent: req.body.timeSpent || 0
+      };
+      
+      const newAttempt = await quizDao.createQuizAttempt(attemptData);
+      console.log('✅ Successfully created attempt:', newAttempt._id);
+      
+      res.status(201).json({
+        ...newAttempt,
+        ...scoreResult
+      });
+    } catch (error) {
+      console.error('💥 Error creating quiz attempt:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // ================================
+  // QUESTION ROUTES - SPECIFIC
+  // ================================
+
+  // Add question to quiz - SPECIFIC ROUTE
   app.post("/api/courses/:courseId/quizzes/:quizId/questions", async (req, res) => {
     try {
       const { quizId, courseId } = req.params;
@@ -305,7 +301,7 @@ export default function QuizRoutes(app) {
     }
   });
 
-  // Update question
+  // Update question - SPECIFIC ROUTE
   app.put("/api/courses/:courseId/quizzes/:quizId/questions/:questionId", async (req, res) => {
     try {
       const { quizId, questionId, courseId } = req.params;
@@ -331,7 +327,7 @@ export default function QuizRoutes(app) {
     }
   });
 
-  // Delete question
+  // Delete question - SPECIFIC ROUTE
   app.delete("/api/courses/:courseId/quizzes/:quizId/questions/:questionId", async (req, res) => {
     try {
       const { quizId, questionId, courseId } = req.params;
@@ -357,116 +353,163 @@ export default function QuizRoutes(app) {
   });
 
   // ================================
-  // QUIZ ATTEMPT ROUTES
+  // GENERAL QUIZ ROUTES (MUST COME AFTER SPECIFIC ONES)
   // ================================
 
-  // Submit quiz attempt
-  app.post("/api/courses/:courseId/quizzes/:quizId/attempts", async (req, res) => {
+  // Get all quizzes for a course - GENERAL ROUTE
+  app.get("/api/courses/:courseId/quizzes", async (req, res) => {
+    try {
+      const { courseId } = req.params;
+      console.log('🔍 GET /quizzes for course:', courseId);
+      
+      const quizzes = await quizDao.findQuizzesByCourse(courseId);
+      console.log('📋 Found quizzes:', Array.isArray(quizzes) ? quizzes.length : 'NOT_ARRAY');
+      
+      // 🔧 FIXED: Ensure we always return an array
+      const safeQuizzes = Array.isArray(quizzes) ? quizzes : [];
+      res.json(safeQuizzes);
+    } catch (error) {
+      console.error('💥 Error getting quizzes for course:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Get specific quiz - GENERAL ROUTE
+  app.get("/api/courses/:courseId/quizzes/:quizId", async (req, res) => {
     try {
       const { quizId, courseId } = req.params;
-      const { userId, answers } = req.body;
+      console.log('🔍 GET /quiz:', { quizId, courseId });
       
-      console.log('📝 POST /attempts:', { quizId, courseId, userId });
-      console.log('📋 Answers provided:', Object.keys(answers).length);
-      
-      // Get quiz to calculate score
       const quiz = await quizDao.findQuizById(quizId);
       if (!quiz) {
-        console.log('❌ Quiz not found for attempt:', quizId);
+        console.log('❌ Quiz not found:', quizId);
         return res.status(404).json({ 
           error: "Quiz not found",
           quizId: quizId,
-          courseId: courseId
+          courseId: courseId 
         });
       }
       
-      // Check if student can take quiz (attempt limits, etc.)
-      const existingAttempts = await quizDao.findAttemptsByQuizAndUser(quizId, userId);
-      console.log('📊 Existing attempts:', existingAttempts.length);
+      console.log('✅ Quiz found:', quiz.title);
+      res.json(quiz);
+    } catch (error) {
+      console.error('💥 Error getting quiz:', error);
+      res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Create new quiz - GENERAL ROUTE
+  app.post("/api/courses/:courseId/quizzes", async (req, res) => {
+    try {
+      const { courseId } = req.params;
+      console.log('➕ POST /quizzes for course:', courseId);
+      console.log('📝 Request body:', Object.keys(req.body));
       
-      if (!quiz.multipleAttempts && existingAttempts.length > 0) {
-        console.log('❌ Multiple attempts not allowed');
-        return res.status(400).json({ error: "Multiple attempts not allowed" });
-      }
-      
-      if (quiz.multipleAttempts && existingAttempts.length >= quiz.attemptLimit) {
-        console.log('❌ Maximum attempts exceeded');
-        return res.status(400).json({ error: "Maximum attempts exceeded" });
-      }
-      
-      // Calculate score
-      const scoreResult = quizDao.calculateScore(quiz.questions, answers);
-      console.log('🧮 Score calculated:', scoreResult);
-      
-      const attemptData = {
-        quizId,
-        userId,
-        answers,
-        score: scoreResult.score,
-        maxScore: scoreResult.maxScore,
-        percentage: scoreResult.percentage,
-        timeSpent: req.body.timeSpent || 0
+      const quizData = {
+        ...req.body,
+        courseId,
+        // Set defaults from requirements
+        quizType: req.body.quizType || "Graded Quiz",
+        assignmentGroup: req.body.assignmentGroup || "Quizzes",
+        shuffleAnswers: req.body.shuffleAnswers !== undefined ? req.body.shuffleAnswers : true,
+        timeLimit: req.body.timeLimit || 20,
+        multipleAttempts: req.body.multipleAttempts || false,
+        attemptLimit: req.body.attemptLimit || 1,
+        showCorrectAnswers: req.body.showCorrectAnswers || "Immediately",
+        oneQuestionAtATime: req.body.oneQuestionAtATime !== undefined ? req.body.oneQuestionAtATime : true,
+        webcamRequired: req.body.webcamRequired || false,
+        lockQuestionsAfterAnswering: req.body.lockQuestionsAfterAnswering || false,
+        accessCode: req.body.accessCode || "",
+        title: req.body.title || `New Quiz`,
+        description: req.body.description || "",
+        points: 0,
+        questions: []
       };
       
-      const newAttempt = await quizDao.createQuizAttempt(attemptData);
-      console.log('✅ Successfully created attempt:', newAttempt._id);
-      
-      res.status(201).json({
-        ...newAttempt,
-        ...scoreResult
+      console.log('📋 Creating quiz with data:', {
+        title: quizData.title,
+        courseId: quizData.courseId,
+        quizType: quizData.quizType
       });
+      
+      const newQuiz = await quizDao.createQuiz(quizData);
+      console.log('✅ Successfully created quiz:', newQuiz._id);
+      
+      res.status(201).json(newQuiz);
     } catch (error) {
-      console.error('💥 Error creating quiz attempt:', error);
+      console.error('💥 Error creating quiz:', error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Get user's attempts for a quiz
-  app.get("/api/courses/:courseId/quizzes/:quizId/attempts/:userId", async (req, res) => {
-    try {
-      const { quizId, userId, courseId } = req.params;
-      console.log('🔍 GET /attempts for user:', { quizId, userId, courseId });
-      
-      const attempts = await quizDao.findAttemptsByQuizAndUser(quizId, userId);
-      console.log('📋 Found attempts:', attempts.length);
-      
-      res.json(attempts);
-    } catch (error) {
-      console.error('💥 Error getting user attempts:', error);
-      res.status(500).json({ error: error.message });
-    }
-  });
-
-  // Get all attempts for a quiz (Faculty only)
-  app.get("/api/courses/:courseId/quizzes/:quizId/attempts", async (req, res) => {
+  // 🔧 FIXED: Enhanced Update quiz route with extensive debugging
+  app.put("/api/courses/:courseId/quizzes/:quizId", async (req, res) => {
     try {
       const { quizId, courseId } = req.params;
-      console.log('🔍 GET /attempts (all) for quiz:', { quizId, courseId });
       
-      // TODO: Add authorization check for faculty
-      const attempts = await quizDao.findAllAttemptsByQuiz(quizId);
-      console.log('📋 Found total attempts:', attempts.length);
+      console.log('🎯 PUT route HIT!'); 
+      console.log('📋 Params:', { quizId, courseId });
+      console.log('📝 Body keys:', Object.keys(req.body));
+      console.log('📄 Body sample:', {
+        title: req.body.title,
+        published: req.body.published,
+        hasQuestions: !!req.body.questions
+      });
       
-      res.json(attempts);
+      // Check if quiz exists BEFORE trying to update
+      const existingQuiz = await quizDao.findQuizById(quizId);
+      if (!existingQuiz) {
+        console.error('❌ Quiz not found in route check:', quizId);
+        return res.status(404).json({ 
+          error: "Quiz not found in route check",
+          quizId: quizId,
+          courseId: courseId 
+        });
+      }
+      
+      console.log('✅ Quiz exists in route, calling DAO...');
+      const updatedQuiz = await quizDao.updateQuiz(quizId, req.body);
+      
+      console.log('📊 DAO returned:', updatedQuiz ? 'QUIZ_OBJECT' : 'NULL');
+      
+      if (!updatedQuiz) {
+        console.error('❌ DAO returned null - returning 404 from route');
+        return res.status(404).json({ 
+          error: "Quiz not found",
+          quizId: quizId,
+          courseId: courseId,
+          message: "DAO updateQuiz returned null"
+        });
+      }
+      
+      console.log('✅ Successfully updated quiz in route:', quizId);
+      res.json(updatedQuiz);
     } catch (error) {
-      console.error('💥 Error getting all attempts:', error);
+      console.error('💥 Error in PUT route:', error);
       res.status(500).json({ error: error.message });
     }
   });
 
-  // Get quiz statistics (Faculty only)
-  app.get("/api/courses/:courseId/quizzes/:quizId/stats", async (req, res) => {
+  // Delete quiz - GENERAL ROUTE
+  app.delete("/api/courses/:courseId/quizzes/:quizId", async (req, res) => {
     try {
       const { quizId, courseId } = req.params;
-      console.log('📊 GET /stats for quiz:', { quizId, courseId });
+      console.log('🗑️ DELETE /quiz:', { quizId, courseId });
       
-      // TODO: Add authorization check for faculty
-      const stats = await quizDao.getQuizStats(quizId);
-      console.log('📊 Generated stats:', stats);
+      const deleted = await quizDao.deleteQuiz(quizId);
+      if (!deleted) {
+        console.log('❌ Quiz not found for deletion:', quizId);
+        return res.status(404).json({ 
+          error: "Quiz not found",
+          quizId: quizId,
+          courseId: courseId 
+        });
+      }
       
-      res.json(stats);
+      console.log('✅ Successfully deleted quiz:', quizId);
+      res.json({ message: "Quiz deleted successfully" });
     } catch (error) {
-      console.error('💥 Error getting quiz stats:', error);
+      console.error('💥 Error deleting quiz:', error);
       res.status(500).json({ error: error.message });
     }
   });
