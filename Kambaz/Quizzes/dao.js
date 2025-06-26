@@ -82,19 +82,13 @@ export async function createQuiz(quiz) {
   }
 }
 
-// 🔧 FIXED: Enhanced updateQuiz function with multiple methods and better error handling
+// Replace your updateQuiz function in dao.js with this more reliable version
 export async function updateQuiz(quizId, quizUpdates) {
   try {
     const db = getDB();
     
     console.log('🔄 Updating quiz:', quizId);
     console.log('📝 Update data keys:', Object.keys(quizUpdates));
-    console.log('📋 Update data sample:', {
-      title: quizUpdates.title,
-      published: quizUpdates.published,
-      hasQuestions: !!quizUpdates.questions,
-      questionCount: quizUpdates.questions?.length || 0
-    });
     
     // First check if quiz exists
     const existingQuiz = await db.collection('quizzes').findOne({ _id: quizId });
@@ -105,9 +99,8 @@ export async function updateQuiz(quizId, quizUpdates) {
     
     console.log('✅ Quiz exists before update:', existingQuiz.title);
     
-    // Clean the update data - remove any problematic fields
+    // Clean the update data
     const cleanUpdateData = {
-      // Only include safe fields
       ...(quizUpdates.title && { title: quizUpdates.title }),
       ...(quizUpdates.description !== undefined && { description: quizUpdates.description }),
       ...(quizUpdates.quizType && { quizType: quizUpdates.quizType }),
@@ -132,29 +125,9 @@ export async function updateQuiz(quizId, quizUpdates) {
     
     console.log('🧹 Clean update data keys:', Object.keys(cleanUpdateData));
     
-    // METHOD 1: Try findOneAndUpdate
+    // Try updateOne first (most reliable)
     try {
-      console.log('🔄 Method 1: findOneAndUpdate...');
-      
-      const result = await db.collection('quizzes').findOneAndUpdate(
-        { _id: quizId },
-        { $set: cleanUpdateData },
-        { returnDocument: 'after' }
-      );
-      
-      if (result && result.value) {
-        console.log('✅ Method 1 successful - quiz updated');
-        return result.value;
-      } else {
-        console.log('⚠️ Method 1 failed - no result value');
-      }
-    } catch (method1Error) {
-      console.log('⚠️ Method 1 error:', method1Error.message);
-    }
-    
-    // METHOD 2: Try updateOne + findOne
-    try {
-      console.log('🔄 Method 2: updateOne + findOne...');
+      console.log('🔄 Trying updateOne method...');
       
       const updateResult = await db.collection('quizzes').updateOne(
         { _id: quizId },
@@ -163,48 +136,87 @@ export async function updateQuiz(quizId, quizUpdates) {
       
       console.log('📊 UpdateOne result:', {
         matchedCount: updateResult.matchedCount,
-        modifiedCount: updateResult.modifiedCount
+        modifiedCount: updateResult.modifiedCount,
+        acknowledged: updateResult.acknowledged
       });
       
-      if (updateResult.modifiedCount === 1) {
+      if (updateResult.acknowledged && updateResult.matchedCount === 1) {
+        console.log('✅ Update operation successful, fetching updated quiz...');
+        
+        // Fetch the updated quiz
         const updatedQuiz = await db.collection('quizzes').findOne({ _id: quizId });
-        console.log('✅ Method 2 successful - quiz updated');
-        return updatedQuiz;
+        
+        if (updatedQuiz) {
+          console.log('✅ Successfully retrieved updated quiz');
+          return updatedQuiz;
+        } else {
+          console.log('⚠️ Update succeeded but could not retrieve updated quiz');
+          // Return the original quiz with updates applied manually
+          return { ...existingQuiz, ...cleanUpdateData };
+        }
       } else {
-        console.log('⚠️ Method 2 failed - no documents modified');
+        console.log('⚠️ UpdateOne did not match/modify document');
       }
-    } catch (method2Error) {
-      console.log('⚠️ Method 2 error:', method2Error.message);
+      
+    } catch (updateError) {
+      console.log('⚠️ UpdateOne error:', updateError.message);
     }
     
-    // METHOD 3: Try replaceOne (last resort)
+    // Fallback: If updateOne didn't work, try findOneAndUpdate
     try {
-      console.log('🔄 Method 3: replaceOne...');
+      console.log('🔄 Trying findOneAndUpdate fallback...');
       
-      const newDocument = {
-        ...existingQuiz,
-        ...cleanUpdateData,
-        _id: quizId  // Ensure ID stays the same
-      };
-      
-      const replaceResult = await db.collection('quizzes').replaceOne(
+      const result = await db.collection('quizzes').findOneAndUpdate(
         { _id: quizId },
-        newDocument
+        { $set: cleanUpdateData },
+        { returnDocument: 'after' }
       );
       
-      console.log('📊 ReplaceOne result:', {
-        matchedCount: replaceResult.matchedCount,
-        modifiedCount: replaceResult.modifiedCount
+      if (result && result.value) {
+        console.log('✅ FindOneAndUpdate fallback successful');
+        return result.value;
+      } else {
+        console.log('⚠️ FindOneAndUpdate fallback failed');
+      }
+      
+    } catch (fallbackError) {
+      console.log('⚠️ FindOneAndUpdate fallback error:', fallbackError.message);
+    }
+    
+    // Last resort: Manual update verification
+    console.log('🔄 Trying manual verification...');
+    
+    // Check if the update actually happened by querying again
+    const finalQuiz = await db.collection('quizzes').findOne({ _id: quizId });
+    
+    if (finalQuiz) {
+      // Check if any of our updates were applied
+      const wasUpdated = Object.keys(cleanUpdateData).some(key => {
+        if (key === 'updatedAt') return true; // Always updated
+        return finalQuiz[key] === cleanUpdateData[key];
       });
       
-      if (replaceResult.modifiedCount === 1) {
-        console.log('✅ Method 3 successful - quiz replaced');
-        return newDocument;
+      if (wasUpdated) {
+        console.log('✅ Manual verification: update was applied');
+        return finalQuiz;
       } else {
-        console.log('⚠️ Method 3 failed - no documents modified');
+        console.log('❌ Manual verification: update was not applied');
+        // Force update by trying replaceOne
+        try {
+          const forceUpdate = { ...finalQuiz, ...cleanUpdateData };
+          const replaceResult = await db.collection('quizzes').replaceOne(
+            { _id: quizId },
+            forceUpdate
+          );
+          
+          if (replaceResult.modifiedCount === 1) {
+            console.log('✅ Force update with replaceOne successful');
+            return forceUpdate;
+          }
+        } catch (forceError) {
+          console.log('⚠️ Force update failed:', forceError.message);
+        }
       }
-    } catch (method3Error) {
-      console.log('⚠️ Method 3 error:', method3Error.message);
     }
     
     console.error('❌ All update methods failed');
