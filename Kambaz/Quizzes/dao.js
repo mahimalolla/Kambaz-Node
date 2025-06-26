@@ -82,33 +82,141 @@ export async function createQuiz(quiz) {
   }
 }
 
+// 🔧 FIXED: Enhanced updateQuiz function with multiple methods and better error handling
 export async function updateQuiz(quizId, quizUpdates) {
   try {
     const db = getDB();
     
     console.log('🔄 Updating quiz:', quizId);
-    console.log('📝 Update data:', Object.keys(quizUpdates));
+    console.log('📝 Update data keys:', Object.keys(quizUpdates));
+    console.log('📋 Update data sample:', {
+      title: quizUpdates.title,
+      published: quizUpdates.published,
+      hasQuestions: !!quizUpdates.questions,
+      questionCount: quizUpdates.questions?.length || 0
+    });
     
-    const updateData = {
-      ...quizUpdates,
+    // First check if quiz exists
+    const existingQuiz = await db.collection('quizzes').findOne({ _id: quizId });
+    if (!existingQuiz) {
+      console.error('❌ Quiz not found for update:', quizId);
+      return null;
+    }
+    
+    console.log('✅ Quiz exists before update:', existingQuiz.title);
+    
+    // Clean the update data - remove any problematic fields
+    const cleanUpdateData = {
+      // Only include safe fields
+      ...(quizUpdates.title && { title: quizUpdates.title }),
+      ...(quizUpdates.description !== undefined && { description: quizUpdates.description }),
+      ...(quizUpdates.quizType && { quizType: quizUpdates.quizType }),
+      ...(quizUpdates.assignmentGroup && { assignmentGroup: quizUpdates.assignmentGroup }),
+      ...(quizUpdates.shuffleAnswers !== undefined && { shuffleAnswers: quizUpdates.shuffleAnswers }),
+      ...(quizUpdates.timeLimit !== undefined && { timeLimit: quizUpdates.timeLimit }),
+      ...(quizUpdates.multipleAttempts !== undefined && { multipleAttempts: quizUpdates.multipleAttempts }),
+      ...(quizUpdates.attemptLimit !== undefined && { attemptLimit: quizUpdates.attemptLimit }),
+      ...(quizUpdates.showCorrectAnswers && { showCorrectAnswers: quizUpdates.showCorrectAnswers }),
+      ...(quizUpdates.accessCode !== undefined && { accessCode: quizUpdates.accessCode }),
+      ...(quizUpdates.oneQuestionAtATime !== undefined && { oneQuestionAtATime: quizUpdates.oneQuestionAtATime }),
+      ...(quizUpdates.webcamRequired !== undefined && { webcamRequired: quizUpdates.webcamRequired }),
+      ...(quizUpdates.lockQuestionsAfterAnswering !== undefined && { lockQuestionsAfterAnswering: quizUpdates.lockQuestionsAfterAnswering }),
+      ...(quizUpdates.published !== undefined && { published: quizUpdates.published }),
+      ...(quizUpdates.points !== undefined && { points: quizUpdates.points }),
+      ...(quizUpdates.dueDate !== undefined && { dueDate: quizUpdates.dueDate }),
+      ...(quizUpdates.availableDate !== undefined && { availableDate: quizUpdates.availableDate }),
+      ...(quizUpdates.availableUntil !== undefined && { availableUntil: quizUpdates.availableUntil }),
+      ...(quizUpdates.questions && { questions: quizUpdates.questions }),
       updatedAt: new Date().toISOString()
     };
     
-    const result = await db.collection('quizzes').findOneAndUpdate(
-      { _id: quizId },
-      { $set: updateData },
-      { returnDocument: 'after' }
-    );
+    console.log('🧹 Clean update data keys:', Object.keys(cleanUpdateData));
     
-    if (result.value) {
-      console.log('✅ Successfully updated quiz:', quizId);
-    } else {
-      console.log('❌ Quiz not found for update:', quizId);
+    // METHOD 1: Try findOneAndUpdate
+    try {
+      console.log('🔄 Method 1: findOneAndUpdate...');
+      
+      const result = await db.collection('quizzes').findOneAndUpdate(
+        { _id: quizId },
+        { $set: cleanUpdateData },
+        { returnDocument: 'after' }
+      );
+      
+      if (result && result.value) {
+        console.log('✅ Method 1 successful - quiz updated');
+        return result.value;
+      } else {
+        console.log('⚠️ Method 1 failed - no result value');
+      }
+    } catch (method1Error) {
+      console.log('⚠️ Method 1 error:', method1Error.message);
     }
     
-    return result.value;
+    // METHOD 2: Try updateOne + findOne
+    try {
+      console.log('🔄 Method 2: updateOne + findOne...');
+      
+      const updateResult = await db.collection('quizzes').updateOne(
+        { _id: quizId },
+        { $set: cleanUpdateData }
+      );
+      
+      console.log('📊 UpdateOne result:', {
+        matchedCount: updateResult.matchedCount,
+        modifiedCount: updateResult.modifiedCount
+      });
+      
+      if (updateResult.modifiedCount === 1) {
+        const updatedQuiz = await db.collection('quizzes').findOne({ _id: quizId });
+        console.log('✅ Method 2 successful - quiz updated');
+        return updatedQuiz;
+      } else {
+        console.log('⚠️ Method 2 failed - no documents modified');
+      }
+    } catch (method2Error) {
+      console.log('⚠️ Method 2 error:', method2Error.message);
+    }
+    
+    // METHOD 3: Try replaceOne (last resort)
+    try {
+      console.log('🔄 Method 3: replaceOne...');
+      
+      const newDocument = {
+        ...existingQuiz,
+        ...cleanUpdateData,
+        _id: quizId  // Ensure ID stays the same
+      };
+      
+      const replaceResult = await db.collection('quizzes').replaceOne(
+        { _id: quizId },
+        newDocument
+      );
+      
+      console.log('📊 ReplaceOne result:', {
+        matchedCount: replaceResult.matchedCount,
+        modifiedCount: replaceResult.modifiedCount
+      });
+      
+      if (replaceResult.modifiedCount === 1) {
+        console.log('✅ Method 3 successful - quiz replaced');
+        return newDocument;
+      } else {
+        console.log('⚠️ Method 3 failed - no documents modified');
+      }
+    } catch (method3Error) {
+      console.log('⚠️ Method 3 error:', method3Error.message);
+    }
+    
+    console.error('❌ All update methods failed');
+    return null;
+    
   } catch (error) {
     console.error('💥 Error updating quiz:', error);
+    console.error('🔍 Error details:', {
+      name: error.name,
+      message: error.message,
+      stack: error.stack
+    });
     return null;
   }
 }
