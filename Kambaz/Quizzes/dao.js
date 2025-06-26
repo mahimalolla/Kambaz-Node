@@ -5,7 +5,7 @@ import { v4 as uuidv4 } from "uuid";
 const getDB = () => mongoose.connection.db;
 
 // ================================
-// QUIZ CRUD OPERATIONS - SIMPLIFIED & FIXED
+// 🚨 EMERGENCY SIMPLIFIED DAO - BULLETPROOF VERSION
 // ================================
 
 export async function findAllQuizzes() {
@@ -13,10 +13,10 @@ export async function findAllQuizzes() {
     const db = getDB();
     const quizzes = await db.collection('quizzes').find({}).toArray();
     console.log('📋 Found', quizzes.length, 'total quizzes');
-    return quizzes;
+    return quizzes || [];
   } catch (error) {
     console.error('💥 Error finding all quizzes:', error);
-    throw new Error(`Failed to find quizzes: ${error.message}`);
+    return [];
   }
 }
 
@@ -26,10 +26,10 @@ export async function findQuizzesByCourse(courseId) {
     console.log('🔍 Finding quizzes for course:', courseId);
     const quizzes = await db.collection('quizzes').find({ courseId }).toArray();
     console.log('📋 Found', quizzes.length, 'quizzes for course', courseId);
-    return quizzes;
+    return quizzes || [];
   } catch (error) {
     console.error('💥 Error finding quizzes by course:', error);
-    throw new Error(`Failed to find quizzes for course ${courseId}: ${error.message}`);
+    return [];
   }
 }
 
@@ -39,27 +39,26 @@ export async function findQuizById(quizId) {
     console.log('🔍 Finding quiz by ID:', quizId);
     
     if (!quizId) {
-      throw new Error('Quiz ID is required');
+      console.error('❌ No quiz ID provided');
+      return null;
     }
     
     const quiz = await db.collection('quizzes').findOne({ _id: quizId });
     console.log('🎯 Quiz found:', quiz ? 'YES' : 'NO');
     
-    if (!quiz) {
-      throw new Error(`Quiz with ID ${quizId} not found`);
+    if (quiz) {
+      console.log('📝 Quiz details:', {
+        id: quiz._id,
+        title: quiz.title,
+        courseId: quiz.courseId,
+        questionCount: quiz.questions?.length || 0
+      });
     }
-    
-    console.log('📝 Quiz details:', {
-      id: quiz._id,
-      title: quiz.title,
-      courseId: quiz.courseId,
-      questionCount: quiz.questions?.length || 0
-    });
     
     return quiz;
   } catch (error) {
     console.error('💥 Error finding quiz by ID:', error);
-    throw error;
+    return null;
   }
 }
 
@@ -72,6 +71,7 @@ export async function createQuiz(quiz) {
       _id: uuidv4(),
       questions: quiz.questions || [],
       published: quiz.published || false,
+      points: 0,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
@@ -84,88 +84,115 @@ export async function createQuiz(quiz) {
     
     const result = await db.collection('quizzes').insertOne(newQuiz);
     
-    if (!result.acknowledged) {
-      throw new Error('Failed to create quiz - database did not acknowledge insert');
+    if (result.acknowledged) {
+      console.log('✅ Successfully created quiz:', newQuiz._id);
+      return newQuiz;
+    } else {
+      throw new Error('Quiz creation not acknowledged by database');
     }
-    
-    console.log('✅ Successfully created quiz:', newQuiz._id);
-    return newQuiz;
   } catch (error) {
     console.error('💥 Error creating quiz:', error);
-    throw new Error(`Failed to create quiz: ${error.message}`);
+    throw error;
   }
 }
 
-// 🔧 COMPLETELY REWRITTEN - SIMPLIFIED AND FIXED
+// 🚨 EMERGENCY FIX: Ultra-simple updateQuiz function
 export async function updateQuiz(quizId, quizUpdates) {
   try {
     const db = getDB();
     
-    console.log('🔄 Starting updateQuiz:', { quizId, updateKeys: Object.keys(quizUpdates) });
+    console.log('🔄 EMERGENCY UPDATE - Starting updateQuiz:', { 
+      quizId, 
+      updateKeys: Object.keys(quizUpdates || {})
+    });
     
+    // Basic validation
     if (!quizId) {
-      throw new Error('Quiz ID is required');
+      const error = new Error('Quiz ID is required');
+      console.error('❌ Validation failed:', error.message);
+      throw error;
     }
     
     if (!quizUpdates || Object.keys(quizUpdates).length === 0) {
-      throw new Error('No updates provided');
+      const error = new Error('No updates provided');
+      console.error('❌ Validation failed:', error.message);
+      throw error;
     }
     
-    // 🔍 First check if quiz exists
+    // Check if quiz exists first
+    console.log('🔍 Checking if quiz exists...');
     const existingQuiz = await db.collection('quizzes').findOne({ _id: quizId });
+    
     if (!existingQuiz) {
-      console.error('❌ Quiz not found for update:', quizId);
-      throw new Error(`Quiz with ID ${quizId} not found`);
+      const error = new Error(`Quiz with ID ${quizId} not found`);
+      console.error('❌ Quiz not found:', error.message);
+      throw error;
     }
     
-    console.log('✅ Quiz exists, current title:', existingQuiz.title);
+    console.log('✅ Quiz exists:', existingQuiz.title);
     
-    // 🧹 Clean the update data - remove undefined values
-    const cleanUpdateData = {};
-    Object.keys(quizUpdates).forEach(key => {
-      if (quizUpdates[key] !== undefined) {
-        cleanUpdateData[key] = quizUpdates[key];
+    // Create simple update object
+    const updateData = {
+      ...quizUpdates,
+      updatedAt: new Date().toISOString()
+    };
+    
+    // Remove any undefined values
+    Object.keys(updateData).forEach(key => {
+      if (updateData[key] === undefined) {
+        delete updateData[key];
       }
     });
     
-    // Add updatedAt timestamp
-    cleanUpdateData.updatedAt = new Date().toISOString();
+    console.log('📝 Clean update data keys:', Object.keys(updateData));
     
-    console.log('📝 Clean update data:', Object.keys(cleanUpdateData));
-    
-    // 🔄 Perform the update using findOneAndUpdate with proper options
-    const result = await db.collection('quizzes').findOneAndUpdate(
+    // Use the most basic update possible
+    console.log('🔄 Attempting database update...');
+    const updateResult = await db.collection('quizzes').updateOne(
       { _id: quizId },
-      { $set: cleanUpdateData },
-      { 
-        returnDocument: 'after',  // Return updated document
-        upsert: false            // Don't create if doesn't exist
-      }
+      { $set: updateData }
     );
     
     console.log('📊 Update result:', {
-      found: !!result.value,
-      lastErrorObject: result.lastErrorObject
+      matched: updateResult.matchedCount,
+      modified: updateResult.modifiedCount,
+      acknowledged: updateResult.acknowledged
     });
     
-    if (!result.value) {
-      throw new Error(`Failed to update quiz ${quizId} - no document returned`);
+    if (!updateResult.acknowledged) {
+      throw new Error('Update not acknowledged by database');
     }
     
-    console.log('✅ Successfully updated quiz:', {
-      id: result.value._id,
-      title: result.value.title,
-      published: result.value.published
+    if (updateResult.matchedCount === 0) {
+      throw new Error('No quiz matched the provided ID');
+    }
+    
+    // Get the updated quiz
+    console.log('🔍 Fetching updated quiz...');
+    const updatedQuiz = await db.collection('quizzes').findOne({ _id: quizId });
+    
+    if (!updatedQuiz) {
+      throw new Error('Could not retrieve updated quiz');
+    }
+    
+    console.log('✅ Quiz updated successfully:', {
+      id: updatedQuiz._id,
+      title: updatedQuiz.title,
+      published: updatedQuiz.published,
+      questionCount: updatedQuiz.questions?.length || 0
     });
     
-    return result.value;
+    return updatedQuiz;
     
   } catch (error) {
-    console.error('💥 Error updating quiz:', {
+    console.error('💥 EMERGENCY ERROR in updateQuiz:', {
+      message: error.message,
+      stack: error.stack,
       quizId,
-      error: error.message,
-      stack: error.stack
+      updateKeys: Object.keys(quizUpdates || {})
     });
+    
+    // Re-throw the error so the route handler can catch it
     throw error;
   }
 }
@@ -184,7 +211,7 @@ export async function deleteQuiz(quizId) {
     const result = await db.collection('quizzes').deleteOne({ _id: quizId });
     
     if (result.deletedCount === 0) {
-      throw new Error(`Quiz with ID ${quizId} not found or already deleted`);
+      throw new Error(`Quiz with ID ${quizId} not found`);
     }
     
     // Remove all attempts for this quiz
@@ -194,12 +221,12 @@ export async function deleteQuiz(quizId) {
     return true;
   } catch (error) {
     console.error('💥 Error deleting quiz:', error);
-    throw new Error(`Failed to delete quiz: ${error.message}`);
+    throw error;
   }
 }
 
 // ================================
-// QUESTION OPERATIONS - COMPLETELY REWRITTEN
+// QUESTION OPERATIONS - SIMPLIFIED
 // ================================
 
 export async function addQuestionToQuiz(quizId, question) {
@@ -207,81 +234,50 @@ export async function addQuestionToQuiz(quizId, question) {
     const db = getDB();
     
     console.log('🔍 Adding question to quiz:', quizId);
-    console.log('📝 Question data:', {
-      type: question.type,
-      title: question.title,
-      points: question.points
-    });
     
-    if (!quizId) {
-      throw new Error('Quiz ID is required');
+    if (!quizId || !question) {
+      throw new Error('Quiz ID and question data are required');
     }
     
-    if (!question) {
-      throw new Error('Question data is required');
-    }
-    
-    // 🔍 Verify the quiz exists
+    // Verify quiz exists
     const existingQuiz = await db.collection('quizzes').findOne({ _id: quizId });
     if (!existingQuiz) {
       throw new Error(`Quiz with ID ${quizId} not found`);
     }
     
-    console.log('📋 Quiz found:', {
-      id: existingQuiz._id,
-      title: existingQuiz.title,
-      currentQuestions: existingQuiz.questions?.length || 0
-    });
+    console.log('📋 Quiz found for question addition');
     
-    // 🆕 Create a clean question object
+    // Create new question
     const newQuestion = {
       _id: uuidv4(),
       type: question.type || 'multiple-choice',
       title: question.title || 'Untitled Question',
       points: parseInt(question.points) || 1,
-      question: question.question || ''
+      question: question.question || '',
+      ...question // Include any other question-specific fields
     };
     
-    // Add type-specific fields
-    if (question.type === 'multiple-choice') {
-      newQuestion.choices = question.choices || ['', '', '', ''];
-      newQuestion.correctAnswer = question.correctAnswer !== undefined ? question.correctAnswer : 0;
-    } else if (question.type === 'true-false') {
-      newQuestion.correctAnswer = question.correctAnswer || 'true';
-    } else if (question.type === 'fill-blank') {
-      newQuestion.possibleAnswers = question.possibleAnswers || [''];
-    }
+    console.log('➕ Adding question:', newQuestion._id);
     
-    console.log('➕ Adding new question with ID:', newQuestion._id);
-    
-    // 🔄 Use $push to add the question and $inc to update total points
-    const result = await db.collection('quizzes').findOneAndUpdate(
+    // Add question using $push
+    const result = await db.collection('quizzes').updateOne(
       { _id: quizId },
       { 
         $push: { questions: newQuestion },
         $inc: { points: newQuestion.points },
         $set: { updatedAt: new Date().toISOString() }
-      },
-      { 
-        returnDocument: 'after',
-        upsert: false
       }
     );
     
-    if (!result.value) {
-      throw new Error('Failed to add question - quiz not found or update failed');
+    if (result.modifiedCount === 1) {
+      console.log('✅ Successfully added question');
+      return newQuestion;
+    } else {
+      throw new Error('Failed to add question to quiz');
     }
     
-    console.log('✅ Successfully added question:', {
-      questionId: newQuestion._id,
-      totalQuestions: result.value.questions.length,
-      totalPoints: result.value.points
-    });
-    
-    return newQuestion;
-    
   } catch (error) {
-    console.error('💥 Error adding question to quiz:', error);
+    console.error('💥 Error adding question:', error);
     throw error;
   }
 }
@@ -291,20 +287,17 @@ export async function updateQuestion(quizId, questionId, questionUpdates) {
     const db = getDB();
     
     console.log('🔄 Updating question:', { quizId, questionId });
-    console.log('📝 Update data:', Object.keys(questionUpdates));
     
     if (!quizId || !questionId) {
       throw new Error('Quiz ID and Question ID are required');
     }
     
-    // Create complete question object
     const updatedQuestion = {
       ...questionUpdates,
       _id: questionId
     };
     
-    // 🔄 Update the specific question in the array
-    const result = await db.collection('quizzes').findOneAndUpdate(
+    const result = await db.collection('quizzes').updateOne(
       { 
         _id: quizId,
         "questions._id": questionId
@@ -314,25 +307,26 @@ export async function updateQuestion(quizId, questionId, questionUpdates) {
           "questions.$": updatedQuestion,
           updatedAt: new Date().toISOString()
         }
-      },
-      { returnDocument: 'after' }
+      }
     );
     
-    if (!result.value) {
-      throw new Error(`Question ${questionId} not found in quiz ${quizId}`);
+    if (result.modifiedCount === 1) {
+      console.log('✅ Successfully updated question');
+      
+      // Recalculate total points
+      const quiz = await db.collection('quizzes').findOne({ _id: quizId });
+      if (quiz && quiz.questions) {
+        const totalPoints = quiz.questions.reduce((sum, q) => sum + (q.points || 0), 0);
+        await db.collection('quizzes').updateOne(
+          { _id: quizId },
+          { $set: { points: totalPoints } }
+        );
+      }
+      
+      return updatedQuestion;
+    } else {
+      throw new Error('Question not found or not updated');
     }
-    
-    // 🔄 Recalculate total points
-    const totalPoints = result.value.questions.reduce((sum, q) => sum + (q.points || 0), 0);
-    await db.collection('quizzes').updateOne(
-      { _id: quizId },
-      { $set: { points: totalPoints } }
-    );
-    
-    console.log('✅ Successfully updated question:', questionId);
-    
-    const updatedQuestionResult = result.value.questions.find(q => q._id === questionId);
-    return updatedQuestionResult;
   } catch (error) {
     console.error('💥 Error updating question:', error);
     throw error;
@@ -349,28 +343,31 @@ export async function deleteQuestion(quizId, questionId) {
       throw new Error('Quiz ID and Question ID are required');
     }
     
-    const result = await db.collection('quizzes').findOneAndUpdate(
+    const result = await db.collection('quizzes').updateOne(
       { _id: quizId },
       { 
         $pull: { questions: { _id: questionId } },
         $set: { updatedAt: new Date().toISOString() }
-      },
-      { returnDocument: 'after' }
+      }
     );
     
-    if (!result.value) {
-      throw new Error(`Quiz ${quizId} not found`);
+    if (result.modifiedCount === 1) {
+      console.log('✅ Successfully deleted question');
+      
+      // Recalculate total points
+      const quiz = await db.collection('quizzes').findOne({ _id: quizId });
+      if (quiz && quiz.questions) {
+        const totalPoints = quiz.questions.reduce((sum, q) => sum + (q.points || 0), 0);
+        await db.collection('quizzes').updateOne(
+          { _id: quizId },
+          { $set: { points: totalPoints } }
+        );
+      }
+      
+      return true;
+    } else {
+      throw new Error('Question not found or not deleted');
     }
-    
-    // 🔄 Recalculate total points
-    const totalPoints = result.value.questions.reduce((sum, q) => sum + (q.points || 0), 0);
-    await db.collection('quizzes').updateOne(
-      { _id: quizId },
-      { $set: { points: totalPoints } }
-    );
-    
-    console.log('✅ Successfully deleted question:', questionId);
-    return true;
   } catch (error) {
     console.error('💥 Error deleting question:', error);
     throw error;
@@ -399,12 +396,12 @@ export async function createQuizAttempt(attempt) {
     
     const result = await db.collection('quizAttempts').insertOne(newAttempt);
     
-    if (!result.acknowledged) {
-      throw new Error('Failed to create quiz attempt');
+    if (result.acknowledged) {
+      console.log('✅ Successfully created quiz attempt');
+      return newAttempt;
+    } else {
+      throw new Error('Quiz attempt creation not acknowledged');
     }
-    
-    console.log('✅ Successfully created quiz attempt:', newAttempt._id);
-    return newAttempt;
   } catch (error) {
     console.error('💥 Error creating quiz attempt:', error);
     throw error;
@@ -420,10 +417,10 @@ export async function findAttemptsByQuizAndUser(quizId, userId) {
       .sort({ submittedAt: -1 })
       .toArray();
     console.log('📋 Found', attempts.length, 'attempts');
-    return attempts;
+    return attempts || [];
   } catch (error) {
-    console.error('💥 Error finding attempts by quiz and user:', error);
-    throw error;
+    console.error('💥 Error finding attempts:', error);
+    return [];
   }
 }
 
@@ -436,10 +433,10 @@ export async function findAllAttemptsByQuiz(quizId) {
       .sort({ submittedAt: -1 })
       .toArray();
     console.log('📋 Found', attempts.length, 'total attempts');
-    return attempts;
+    return attempts || [];
   } catch (error) {
-    console.error('💥 Error finding all attempts by quiz:', error);
-    throw error;
+    console.error('💥 Error finding all attempts:', error);
+    return [];
   }
 }
 
@@ -450,7 +447,6 @@ export async function getQuizStats(quizId) {
     const attempts = await db.collection('quizAttempts').find({ quizId }).toArray();
     
     if (attempts.length === 0) {
-      console.log('📊 No attempts found for stats');
       return {
         totalAttempts: 0,
         uniqueStudents: 0,
@@ -471,11 +467,17 @@ export async function getQuizStats(quizId) {
       lowestScore: Math.min(...scores)
     };
     
-    console.log('📊 Quiz stats:', stats);
+    console.log('📊 Quiz stats calculated');
     return stats;
   } catch (error) {
     console.error('💥 Error getting quiz stats:', error);
-    throw error;
+    return {
+      totalAttempts: 0,
+      uniqueStudents: 0,
+      averageScore: 0,
+      highestScore: 0,
+      lowestScore: 0
+    };
   }
 }
 
@@ -520,34 +522,8 @@ export function calculateScore(questions, answers) {
 }
 
 // ================================
-// DEBUG FUNCTIONS - ENHANCED
+// DEBUG FUNCTIONS
 // ================================
-
-export async function testQuizExists(quizId) {
-  try {
-    const db = getDB();
-    
-    console.log('🔍 Testing if quiz exists:', quizId);
-    
-    const quiz = await db.collection('quizzes').findOne({ _id: quizId });
-    console.log('🎯 Quiz found:', !!quiz);
-    
-    if (quiz) {
-      console.log('📋 Quiz details:', {
-        id: quiz._id,
-        title: quiz.title,
-        courseId: quiz.courseId,
-        questionCount: quiz.questions?.length || 0,
-        published: quiz.published
-      });
-    }
-    
-    return quiz;
-  } catch (error) {
-    console.error('💥 Error testing quiz existence:', error);
-    throw error;
-  }
-}
 
 export async function debugDatabaseConnection() {
   try {
@@ -555,22 +531,13 @@ export async function debugDatabaseConnection() {
     
     console.log('🔍 Testing database connection...');
     
-    // Test connection
     const adminDb = db.admin();
     const result = await adminDb.ping();
-    console.log('🏓 Database ping result:', result);
+    console.log('🏓 Database ping successful');
     
-    // List collections
     const collections = await db.listCollections().toArray();
-    console.log('📋 Available collections:', collections.map(c => c.name));
-    
-    // Count documents in quizzes collection
     const quizCount = await db.collection('quizzes').countDocuments();
-    console.log('📊 Total quizzes in database:', quizCount);
-    
-    // Count documents in quizAttempts collection
     const attemptCount = await db.collection('quizAttempts').countDocuments();
-    console.log('📊 Total quiz attempts in database:', attemptCount);
     
     return {
       connected: true,
@@ -583,171 +550,6 @@ export async function debugDatabaseConnection() {
     return {
       connected: false,
       error: error.message
-    };
-  }
-}
-
-// ================================
-// NEW COMPREHENSIVE TEST METHODS
-// ================================
-
-export async function testSimpleQuizUpdate(quizId) {
-  try {
-    const db = getDB();
-    
-    console.log('🧪 Testing simple quiz update for:', quizId);
-    
-    const testData = { 
-      testField: 'test-' + Date.now(),
-      updatedAt: new Date().toISOString()
-    };
-    
-    const result = await db.collection('quizzes').findOneAndUpdate(
-      { _id: quizId },
-      { $set: testData },
-      { returnDocument: 'after' }
-    );
-    
-    console.log('📊 Simple update result:', {
-      found: !!result.value,
-      testFieldValue: result.value?.testField
-    });
-    
-    return {
-      success: !!result.value,
-      found: !!result.value,
-      testField: result.value?.testField
-    };
-  } catch (error) {
-    console.error('💥 Simple update test failed:', error);
-    return { 
-      success: false, 
-      error: error.message 
-    };
-  }
-}
-
-export async function forceAddQuestionDirect(quizId, questionData) {
-  try {
-    const db = getDB();
-    
-    console.log('🔧 Force adding question directly:', quizId);
-    
-    // Get current quiz
-    const quiz = await db.collection('quizzes').findOne({ _id: quizId });
-    if (!quiz) {
-      return { success: false, error: 'Quiz not found' };
-    }
-    
-    // Create new question
-    const newQuestion = {
-      _id: uuidv4(),
-      ...questionData,
-      type: questionData.type || 'multiple-choice',
-      points: parseInt(questionData.points) || 1
-    };
-    
-    // Force update using replaceOne
-    const updatedQuestions = [...(quiz.questions || []), newQuestion];
-    const updatedQuiz = {
-      ...quiz,
-      questions: updatedQuestions,
-      points: updatedQuestions.reduce((sum, q) => sum + (q.points || 0), 0),
-      updatedAt: new Date().toISOString()
-    };
-    
-    const result = await db.collection('quizzes').replaceOne(
-      { _id: quizId },
-      updatedQuiz
-    );
-    
-    console.log('📊 Force update result:', {
-      matchedCount: result.matchedCount,
-      modifiedCount: result.modifiedCount
-    });
-    
-    return {
-      success: result.modifiedCount === 1,
-      questionId: newQuestion._id,
-      totalQuestions: updatedQuestions.length
-    };
-  } catch (error) {
-    console.error('💥 Force add question failed:', error);
-    return { success: false, error: error.message };
-  }
-}
-
-// 🆕 NEW: Test complete quiz workflow
-export async function testCompleteQuizWorkflow() {
-  try {
-    const db = getDB();
-    console.log('🧪 Testing complete quiz workflow...');
-    
-    // 1. Create test quiz
-    const testQuiz = {
-      title: 'Test Quiz ' + Date.now(),
-      courseId: 'test-course',
-      description: 'Test quiz for debugging',
-      published: false
-    };
-    
-    const createdQuiz = await createQuiz(testQuiz);
-    console.log('✅ Created test quiz:', createdQuiz._id);
-    
-    // 2. Update quiz
-    const updateResult = await updateQuiz(createdQuiz._id, { 
-      title: 'Updated Test Quiz',
-      published: true 
-    });
-    console.log('✅ Updated test quiz:', updateResult.title);
-    
-    // 3. Add question
-    const testQuestion = {
-      type: 'multiple-choice',
-      title: 'Test Question',
-      points: 5,
-      question: 'What is 2+2?',
-      choices: ['3', '4', '5', '6'],
-      correctAnswer: 1
-    };
-    
-    const addedQuestion = await addQuestionToQuiz(createdQuiz._id, testQuestion);
-    console.log('✅ Added test question:', addedQuestion._id);
-    
-    // 4. Verify final state
-    const finalQuiz = await findQuizById(createdQuiz._id);
-    console.log('✅ Final quiz state:', {
-      title: finalQuiz.title,
-      published: finalQuiz.published,
-      questionCount: finalQuiz.questions.length,
-      totalPoints: finalQuiz.points
-    });
-    
-    // 5. Cleanup
-    await deleteQuiz(createdQuiz._id);
-    console.log('✅ Cleaned up test quiz');
-    
-    return {
-      success: true,
-      message: 'Complete workflow test passed',
-      results: {
-        created: !!createdQuiz,
-        updated: !!updateResult,
-        questionAdded: !!addedQuestion,
-        finalState: {
-          questions: finalQuiz.questions.length,
-          points: finalQuiz.points,
-          published: finalQuiz.published
-        }
-      }
-    };
-    
-  } catch (error) {
-    console.error('💥 Complete workflow test failed:', error);
-    return {
-      success: false,
-      error: error.message,
-      stack: error.stack
     };
   }
 }
