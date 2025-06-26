@@ -1,199 +1,291 @@
-import Database from "../Database/index.js";
+import mongoose from "mongoose";
 import { v4 as uuidv4 } from "uuid";
+
+// Helper to get MongoDB collections
+const getDB = () => mongoose.connection.db;
 
 // ================================
 // QUIZ CRUD OPERATIONS
 // ================================
 
-export function findAllQuizzes() {
-  return Database.quizzes || [];
-}
-
-export function findQuizzesByCourse(courseId) {
-  const quizzes = Database.quizzes || [];
-  return quizzes.filter(quiz => quiz.courseId === courseId);
-}
-
-export function findQuizById(quizId) {
-  const quizzes = Database.quizzes || [];
-  return quizzes.find(quiz => quiz._id === quizId);
-}
-
-export function createQuiz(quiz) {
-  if (!Database.quizzes) {
-    Database.quizzes = [];
+export async function findAllQuizzes() {
+  try {
+    const db = getDB();
+    const quizzes = await db.collection('quizzes').find({}).toArray();
+    return quizzes;
+  } catch (error) {
+    console.error('Error finding all quizzes:', error);
+    return [];
   }
-  
-  const newQuiz = {
-    ...quiz,
-    _id: uuidv4(),
-    questions: quiz.questions || [],
-    published: quiz.published || false,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
-  };
-  
-  Database.quizzes = [...Database.quizzes, newQuiz];
-  return newQuiz;
 }
 
-export function updateQuiz(quizId, quizUpdates) {
-  if (!Database.quizzes) {
-    Database.quizzes = [];
+export async function findQuizzesByCourse(courseId) {
+  try {
+    const db = getDB();
+    const quizzes = await db.collection('quizzes').find({ courseId }).toArray();
+    return quizzes;
+  } catch (error) {
+    console.error('Error finding quizzes by course:', error);
+    return [];
   }
-  
-  const quizIndex = Database.quizzes.findIndex(quiz => quiz._id === quizId);
-  if (quizIndex !== -1) {
-    const updatedQuiz = {
-      ...Database.quizzes[quizIndex],
+}
+
+export async function findQuizById(quizId) {
+  try {
+    const db = getDB();
+    const quiz = await db.collection('quizzes').findOne({ _id: quizId });
+    return quiz;
+  } catch (error) {
+    console.error('Error finding quiz by ID:', error);
+    return null;
+  }
+}
+
+export async function createQuiz(quiz) {
+  try {
+    const db = getDB();
+    
+    const newQuiz = {
+      ...quiz,
+      _id: uuidv4(),
+      questions: quiz.questions || [],
+      published: quiz.published || false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    };
+    
+    await db.collection('quizzes').insertOne(newQuiz);
+    return newQuiz;
+  } catch (error) {
+    console.error('Error creating quiz:', error);
+    throw error;
+  }
+}
+
+export async function updateQuiz(quizId, quizUpdates) {
+  try {
+    const db = getDB();
+    
+    const updateData = {
       ...quizUpdates,
       updatedAt: new Date().toISOString()
     };
-    Database.quizzes[quizIndex] = updatedQuiz;
-    return updatedQuiz;
+    
+    const result = await db.collection('quizzes').findOneAndUpdate(
+      { _id: quizId },
+      { $set: updateData },
+      { returnDocument: 'after' }
+    );
+    
+    return result.value;
+  } catch (error) {
+    console.error('Error updating quiz:', error);
+    return null;
   }
-  return null;
 }
 
-export function deleteQuiz(quizId) {
-  if (!Database.quizzes) {
-    return false;
-  }
-  
-  const quizIndex = Database.quizzes.findIndex(quiz => quiz._id === quizId);
-  if (quizIndex !== -1) {
+export async function deleteQuiz(quizId) {
+  try {
+    const db = getDB();
+    
     // Remove the quiz
-    Database.quizzes = Database.quizzes.filter(quiz => quiz._id !== quizId);
+    const result = await db.collection('quizzes').deleteOne({ _id: quizId });
     
     // Remove all attempts for this quiz
-    if (Database.quizAttempts) {
-      Database.quizAttempts = Database.quizAttempts.filter(attempt => attempt.quizId !== quizId);
-    }
+    await db.collection('quizAttempts').deleteMany({ quizId });
     
-    return true;
+    return result.deletedCount > 0;
+  } catch (error) {
+    console.error('Error deleting quiz:', error);
+    return false;
   }
-  return false;
 }
 
 // ================================
 // QUESTION CRUD OPERATIONS
 // ================================
 
-export function addQuestionToQuiz(quizId, question) {
-  if (!Database.quizzes) {
-    Database.quizzes = [];
-  }
-  
-  const quizIndex = Database.quizzes.findIndex(quiz => quiz._id === quizId);
-  if (quizIndex !== -1) {
+export async function addQuestionToQuiz(quizId, question) {
+  try {
+    const db = getDB();
+    
     const newQuestion = {
       ...question,
       _id: uuidv4()
     };
     
-    if (!Database.quizzes[quizIndex].questions) {
-      Database.quizzes[quizIndex].questions = [];
+    // Add question to quiz's questions array
+    const result = await db.collection('quizzes').findOneAndUpdate(
+      { _id: quizId },
+      { 
+        $push: { questions: newQuestion },
+        $set: { updatedAt: new Date().toISOString() }
+      },
+      { returnDocument: 'after' }
+    );
+    
+    if (result.value) {
+      // Update total points
+      const totalPoints = result.value.questions.reduce((sum, q) => sum + (q.points || 0), 0);
+      await db.collection('quizzes').updateOne(
+        { _id: quizId },
+        { $set: { points: totalPoints } }
+      );
+      
+      return newQuestion;
     }
     
-    Database.quizzes[quizIndex].questions.push(newQuestion);
-    Database.quizzes[quizIndex].updatedAt = new Date().toISOString();
-    
-    // Update total points
-    const totalPoints = Database.quizzes[quizIndex].questions.reduce((sum, q) => sum + (q.points || 0), 0);
-    Database.quizzes[quizIndex].points = totalPoints;
-    
-    return newQuestion;
-  }
-  return null;
-}
-
-export function updateQuestion(quizId, questionId, questionUpdates) {
-  if (!Database.quizzes) {
+    return null;
+  } catch (error) {
+    console.error('Error adding question to quiz:', error);
     return null;
   }
-  
-  const quizIndex = Database.quizzes.findIndex(quiz => quiz._id === quizId);
-  if (quizIndex !== -1 && Database.quizzes[quizIndex].questions) {
-    const questionIndex = Database.quizzes[quizIndex].questions.findIndex(q => q._id === questionId);
-    if (questionIndex !== -1) {
-      Database.quizzes[quizIndex].questions[questionIndex] = {
-        ...Database.quizzes[quizIndex].questions[questionIndex],
-        ...questionUpdates
-      };
-      Database.quizzes[quizIndex].updatedAt = new Date().toISOString();
-      
-      // Update total points
-      const totalPoints = Database.quizzes[quizIndex].questions.reduce((sum, q) => sum + (q.points || 0), 0);
-      Database.quizzes[quizIndex].points = totalPoints;
-      
-      return Database.quizzes[quizIndex].questions[questionIndex];
-    }
-  }
-  return null;
 }
 
-export function deleteQuestion(quizId, questionId) {
-  if (!Database.quizzes) {
-    return false;
-  }
-  
-  const quizIndex = Database.quizzes.findIndex(quiz => quiz._id === quizId);
-  if (quizIndex !== -1 && Database.quizzes[quizIndex].questions) {
-    const questionIndex = Database.quizzes[quizIndex].questions.findIndex(q => q._id === questionId);
-    if (questionIndex !== -1) {
-      Database.quizzes[quizIndex].questions = Database.quizzes[quizIndex].questions.filter(q => q._id !== questionId);
-      Database.quizzes[quizIndex].updatedAt = new Date().toISOString();
-      
+export async function updateQuestion(quizId, questionId, questionUpdates) {
+  try {
+    const db = getDB();
+    
+    const result = await db.collection('quizzes').findOneAndUpdate(
+      { 
+        _id: quizId,
+        "questions._id": questionId
+      },
+      { 
+        $set: {
+          "questions.$": { ...questionUpdates, _id: questionId },
+          updatedAt: new Date().toISOString()
+        }
+      },
+      { returnDocument: 'after' }
+    );
+    
+    if (result.value) {
       // Update total points
-      const totalPoints = Database.quizzes[quizIndex].questions.reduce((sum, q) => sum + (q.points || 0), 0);
-      Database.quizzes[quizIndex].points = totalPoints;
+      const totalPoints = result.value.questions.reduce((sum, q) => sum + (q.points || 0), 0);
+      await db.collection('quizzes').updateOne(
+        { _id: quizId },
+        { $set: { points: totalPoints } }
+      );
+      
+      return result.value.questions.find(q => q._id === questionId);
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error updating question:', error);
+    return null;
+  }
+}
+
+export async function deleteQuestion(quizId, questionId) {
+  try {
+    const db = getDB();
+    
+    const result = await db.collection('quizzes').findOneAndUpdate(
+      { _id: quizId },
+      { 
+        $pull: { questions: { _id: questionId } },
+        $set: { updatedAt: new Date().toISOString() }
+      },
+      { returnDocument: 'after' }
+    );
+    
+    if (result.value) {
+      // Update total points
+      const totalPoints = result.value.questions.reduce((sum, q) => sum + (q.points || 0), 0);
+      await db.collection('quizzes').updateOne(
+        { _id: quizId },
+        { $set: { points: totalPoints } }
+      );
       
       return true;
     }
+    
+    return false;
+  } catch (error) {
+    console.error('Error deleting question:', error);
+    return false;
   }
-  return false;
 }
 
 // ================================
 // QUIZ ATTEMPT OPERATIONS
 // ================================
 
-export function createQuizAttempt(attempt) {
-  if (!Database.quizAttempts) {
-    Database.quizAttempts = [];
+export async function createQuizAttempt(attempt) {
+  try {
+    const db = getDB();
+    
+    const newAttempt = {
+      ...attempt,
+      _id: uuidv4(),
+      submittedAt: new Date().toISOString()
+    };
+    
+    await db.collection('quizAttempts').insertOne(newAttempt);
+    return newAttempt;
+  } catch (error) {
+    console.error('Error creating quiz attempt:', error);
+    throw error;
   }
-  
-  const newAttempt = {
-    ...attempt,
-    _id: uuidv4(),
-    submittedAt: new Date().toISOString()
-  };
-  
-  Database.quizAttempts = [...Database.quizAttempts, newAttempt];
-  return newAttempt;
 }
 
-export function findAttemptsByQuizAndUser(quizId, userId) {
-  if (!Database.quizAttempts) {
+export async function findAttemptsByQuizAndUser(quizId, userId) {
+  try {
+    const db = getDB();
+    const attempts = await db.collection('quizAttempts')
+      .find({ quizId, userId })
+      .sort({ submittedAt: -1 })
+      .toArray();
+    return attempts;
+  } catch (error) {
+    console.error('Error finding attempts by quiz and user:', error);
     return [];
   }
-  
-  return Database.quizAttempts.filter(attempt => 
-    attempt.quizId === quizId && attempt.userId === userId
-  ).sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 }
 
-export function findAllAttemptsByQuiz(quizId) {
-  if (!Database.quizAttempts) {
+export async function findAllAttemptsByQuiz(quizId) {
+  try {
+    const db = getDB();
+    const attempts = await db.collection('quizAttempts')
+      .find({ quizId })
+      .sort({ submittedAt: -1 })
+      .toArray();
+    return attempts;
+  } catch (error) {
+    console.error('Error finding all attempts by quiz:', error);
     return [];
   }
-  
-  return Database.quizAttempts.filter(attempt => attempt.quizId === quizId)
-    .sort((a, b) => new Date(b.submittedAt) - new Date(a.submittedAt));
 }
 
-export function getQuizStats(quizId) {
-  if (!Database.quizAttempts) {
+export async function getQuizStats(quizId) {
+  try {
+    const db = getDB();
+    const attempts = await db.collection('quizAttempts').find({ quizId }).toArray();
+    
+    if (attempts.length === 0) {
+      return {
+        totalAttempts: 0,
+        uniqueStudents: 0,
+        averageScore: 0,
+        highestScore: 0,
+        lowestScore: 0
+      };
+    }
+    
+    const scores = attempts.map(attempt => attempt.score);
+    const uniqueStudents = new Set(attempts.map(attempt => attempt.userId)).size;
+    
+    return {
+      totalAttempts: attempts.length,
+      uniqueStudents,
+      averageScore: scores.reduce((sum, score) => sum + score, 0) / scores.length,
+      highestScore: Math.max(...scores),
+      lowestScore: Math.min(...scores)
+    };
+  } catch (error) {
+    console.error('Error getting quiz stats:', error);
     return {
       totalAttempts: 0,
       uniqueStudents: 0,
@@ -202,29 +294,6 @@ export function getQuizStats(quizId) {
       lowestScore: 0
     };
   }
-  
-  const attempts = Database.quizAttempts.filter(attempt => attempt.quizId === quizId);
-  
-  if (attempts.length === 0) {
-    return {
-      totalAttempts: 0,
-      uniqueStudents: 0,
-      averageScore: 0,
-      highestScore: 0,
-      lowestScore: 0
-    };
-  }
-  
-  const scores = attempts.map(attempt => attempt.score);
-  const uniqueStudents = new Set(attempts.map(attempt => attempt.userId)).size;
-  
-  return {
-    totalAttempts: attempts.length,
-    uniqueStudents,
-    averageScore: scores.reduce((sum, score) => sum + score, 0) / scores.length,
-    highestScore: Math.max(...scores),
-    lowestScore: Math.min(...scores)
-  };
 }
 
 // ================================
