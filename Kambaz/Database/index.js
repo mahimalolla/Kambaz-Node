@@ -13,8 +13,8 @@ export let users = [
     email: "alice.johnson@northeastern.edu",
     dob: "1985-08-15",
     role: "FACULTY",
-    loginTime: undefined as string | undefined,
-    lastActivity: undefined as string | undefined
+    loginTime: undefined,
+    lastActivity: undefined
   },
   {
     _id: "122",
@@ -25,8 +25,8 @@ export let users = [
     email: "bob.smith@northeastern.edu",
     dob: "1999-03-22", 
     role: "STUDENT",
-    loginTime: undefined as string | undefined,
-    lastActivity: undefined as string | undefined
+    loginTime: undefined,
+    lastActivity: undefined
   },
   {
     _id: "123",
@@ -37,8 +37,8 @@ export let users = [
     email: "charlie.wilson@northeastern.edu",
     dob: "1988-11-05",
     role: "FACULTY",
-    loginTime: undefined as string | undefined,
-    lastActivity: undefined as string | undefined
+    loginTime: undefined,
+    lastActivity: undefined
   },
   {
     _id: "124", 
@@ -49,8 +49,8 @@ export let users = [
     email: "diana.prince@northeastern.edu",
     dob: "2000-07-12",
     role: "STUDENT",
-    loginTime: undefined as string | undefined,
-    lastActivity: undefined as string | undefined
+    loginTime: undefined,
+    lastActivity: undefined
   },
   {
     _id: "125",
@@ -61,8 +61,8 @@ export let users = [
     email: "tony.stark@northeastern.edu",
     dob: "1970-05-29",
     role: "STUDENT",
-    loginTime: undefined as string | undefined,
-    lastActivity: undefined as string | undefined
+    loginTime: undefined,
+    lastActivity: undefined
   },
   {
     _id: "126",
@@ -73,8 +73,8 @@ export let users = [
     email: "alice.wonderland@northeastern.edu",
     dob: "1995-03-15",
     role: "STUDENT",
-    loginTime: undefined as string | undefined,
-    lastActivity: undefined as string | undefined
+    loginTime: undefined,
+    lastActivity: undefined
   }
 ];
 
@@ -94,8 +94,8 @@ export let enrollments = [
 ];
 
 // 👈 ADD THESE QUIZ DATA STRUCTURES
-export let quizzes: any[] = [];
-export let quizAttempts: any[] = [];
+export let quizzes = [];
+export let quizAttempts = [];
 
 // Make the imported data mutable for CRUD operations
 export let coursesData = [...courses];
@@ -106,19 +106,19 @@ export let assignmentsData = [...assignments];
 export { courses, modules, assignments };
 
 // User CRUD Operations - REQUIRED FOR AUTHENTICATION
-export const findUserByCredentials = (username: string, password: string) => {
+export const findUserByCredentials = (username, password) => {
   return users.find(user => user.username === username && user.password === password);
 };
 
-export const findUserById = (id: string) => {
+export const findUserById = (id) => {
   return users.find(user => user._id === id);
 };
 
-export const findUserByUsername = (username: string) => {
+export const findUserByUsername = (username) => {
   return users.find(user => user.username === username);
 };
 
-export const updateUser = (userId: string, updates: Partial<typeof users[0]>) => {
+export const updateUser = (userId, updates) => {
   const userIndex = users.findIndex(user => user._id === userId);
   if (userIndex !== -1) {
     users[userIndex] = { ...users[userIndex], ...updates };
@@ -127,7 +127,7 @@ export const updateUser = (userId: string, updates: Partial<typeof users[0]>) =>
   return null;
 };
 
-export const createUser = (userData: Omit<typeof users[0], '_id'>) => {
+export const createUser = (userData) => {
   const newUser = {
     _id: Date.now().toString(),
     ...userData
@@ -137,7 +137,7 @@ export const createUser = (userData: Omit<typeof users[0], '_id'>) => {
 };
 
 // Course CRUD Operations
-export const getCoursesByUser = (userId: string) => {
+export const getCoursesByUser = (userId) => {
   const userEnrollments = enrollments.filter(enrollment => enrollment.user === userId);
   return coursesData.filter(course => 
     userEnrollments.some(enrollment => enrollment.course === course._id)
@@ -148,11 +148,11 @@ export const getAllCourses = () => {
   return coursesData;
 };
 
-export const findCourseById = (courseId: string) => {
+export const findCourseById = (courseId) => {
   return coursesData.find(course => course._id === courseId);
 };
 
-export const createCourse = (courseData: Omit<typeof coursesData[0], '_id'>) => {
+export const createCourse = (courseData) => {
   const newCourse = {
     _id: Date.now().toString(),
     ...courseData
@@ -161,7 +161,7 @@ export const createCourse = (courseData: Omit<typeof coursesData[0], '_id'>) => 
   return newCourse;
 };
 
-export const updateCourse = (courseId: string, updates: Partial<typeof coursesData[0]>) => {
+export const updateCourse = (courseId, updates) => {
   const courseIndex = coursesData.findIndex(course => course._id === courseId);
   if (courseIndex !== -1) {
     coursesData[courseIndex] = { ...coursesData[courseIndex], ...updates };
@@ -170,7 +170,7 @@ export const updateCourse = (courseId: string, updates: Partial<typeof coursesDa
   return null;
 };
 
-export const deleteCourse = (courseId: string) => {
+export const deleteCourse = (courseId) => {
   const courseIndex = coursesData.findIndex(course => course._id === courseId);
   if (courseIndex !== -1) {
     coursesData.splice(courseIndex, 1);
@@ -182,15 +182,15 @@ export const deleteCourse = (courseId: string) => {
 };
 
 // Module CRUD Operations
-export const getModulesByCourse = (courseId: string) => {
+export const getModulesByCourse = (courseId) => {
   return modulesData.filter(module => module.course === courseId);
 };
 
-export const findModuleById = (moduleId: string) => {
+export const findModuleById = (moduleId) => {
   return modulesData.find(module => module._id === moduleId);
 };
 
-export const createModule = (moduleData: Omit<typeof modulesData[0], '_id'>) => {
+export const createModule = (moduleData) => {
   const newModule = {
     _id: Date.now().toString(),
     ...moduleData
@@ -199,7 +199,7 @@ export const createModule = (moduleData: Omit<typeof modulesData[0], '_id'>) => 
   return newModule;
 };
 
-export const updateModule = (moduleId: string, updates: Partial<typeof modulesData[0]>) => {
+export const updateModule = (moduleId, updates) => {
   const moduleIndex = modulesData.findIndex(module => module._id === moduleId);
   if (moduleIndex !== -1) {
     modulesData[moduleIndex] = { ...modulesData[moduleIndex], ...updates };
@@ -208,7 +208,7 @@ export const updateModule = (moduleId: string, updates: Partial<typeof modulesDa
   return null;
 };
 
-export const deleteModule = (moduleId: string) => {
+export const deleteModule = (moduleId) => {
   const moduleIndex = modulesData.findIndex(module => module._id === moduleId);
   if (moduleIndex !== -1) {
     modulesData.splice(moduleIndex, 1);
@@ -218,15 +218,15 @@ export const deleteModule = (moduleId: string) => {
 };
 
 // Assignment CRUD Operations
-export const getAssignmentsByCourse = (courseId: string) => {
+export const getAssignmentsByCourse = (courseId) => {
   return assignmentsData.filter(assignment => assignment.course === courseId);
 };
 
-export const findAssignmentById = (assignmentId: string) => {
+export const findAssignmentById = (assignmentId) => {
   return assignmentsData.find(assignment => assignment._id === assignmentId);
 };
 
-export const createAssignment = (assignmentData: Omit<typeof assignmentsData[0], '_id'>) => {
+export const createAssignment = (assignmentData) => {
   const newAssignment = {
     _id: Date.now().toString(),
     ...assignmentData
@@ -235,7 +235,7 @@ export const createAssignment = (assignmentData: Omit<typeof assignmentsData[0],
   return newAssignment;
 };
 
-export const updateAssignment = (assignmentId: string, updates: Partial<typeof assignmentsData[0]>) => {
+export const updateAssignment = (assignmentId, updates) => {
   const assignmentIndex = assignmentsData.findIndex(assignment => assignment._id === assignmentId);
   if (assignmentIndex !== -1) {
     assignmentsData[assignmentIndex] = { ...assignmentsData[assignmentIndex], ...updates };
@@ -244,7 +244,7 @@ export const updateAssignment = (assignmentId: string, updates: Partial<typeof a
   return null;
 };
 
-export const deleteAssignment = (assignmentId: string) => {
+export const deleteAssignment = (assignmentId) => {
   const assignmentIndex = assignmentsData.findIndex(assignment => assignment._id === assignmentId);
   if (assignmentIndex !== -1) {
     assignmentsData.splice(assignmentIndex, 1);
@@ -254,7 +254,7 @@ export const deleteAssignment = (assignmentId: string) => {
 };
 
 // Enrollment CRUD Operations
-export const enrollUserInCourse = (userId: string, courseId: string) => {
+export const enrollUserInCourse = (userId, courseId) => {
   const newEnrollment = {
     _id: Date.now().toString(),
     user: userId,
@@ -264,7 +264,7 @@ export const enrollUserInCourse = (userId: string, courseId: string) => {
   return newEnrollment;
 };
 
-export const unenrollUserFromCourse = (userId: string, courseId: string) => {
+export const unenrollUserFromCourse = (userId, courseId) => {
   const enrollmentIndex = enrollments.findIndex(
     enrollment => enrollment.user === userId && enrollment.course === courseId
   );
@@ -275,14 +275,14 @@ export const unenrollUserFromCourse = (userId: string, courseId: string) => {
   return false;
 };
 
-export const isUserEnrolledInCourse = (userId: string, courseId: string) => {
+export const isUserEnrolledInCourse = (userId, courseId) => {
   return enrollments.some(enrollment => enrollment.user === userId && enrollment.course === courseId);
 };
 
-export const getEnrollmentsByUser = (userId: string) => {
+export const getEnrollmentsByUser = (userId) => {
   return enrollments.filter(enrollment => enrollment.user === userId);
 };
 
-export const getEnrollmentsByCourse = (courseId: string) => {
+export const getEnrollmentsByCourse = (courseId) => {
   return enrollments.filter(enrollment => enrollment.course === courseId);
 };
