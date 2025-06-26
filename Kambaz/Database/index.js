@@ -528,3 +528,16 @@ export const getEnrollmentsByUser = (userId) => {
 export const getEnrollmentsByCourse = (courseId) => {
   return enrollments.filter(enrollment => enrollment.course === courseId);
 };
+
+export default {
+  users,
+  enrollments,
+  coursesData,
+  modulesData, 
+  assignmentsData,
+  courses,
+  modules,
+  assignments,
+  quizzes,        // ← Quiz data that the DAO needs
+  quizAttempts    // ← Quiz attempts data that the DAO needs
+};
