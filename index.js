@@ -9,7 +9,7 @@ import CourseRoutes from "./Kambaz/Courses/routes.js";
 import ModuleRoutes from "./Kambaz/Modules/routes.js";
 import EnrollmentRoutes from "./Kambaz/Enrollments/routes.js";
 import AssignmentRoutes from "./Kambaz/Assignments/routes.js";
-import QuizRoutes from "./Kambaz/Quizzes/routes.js"; // 👈 ADD THIS LINE
+import QuizRoutes from "./Kambaz/Quizzes/routes.js";
 
 
 const CONNECTION_STRING = process.env.MONGO_CONNECTION_STRING || "mongodb://127.0.0.1:27017/kambaz";
@@ -114,6 +114,49 @@ app.get('/api/test', (req, res) => {
     origin: req.get('origin') || 'no-origin',
     mongodb: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected'
   });
+});
+
+// 👈 NEW: DEBUG ROUTES FOR MONGODB
+app.get('/api/debug/mongodb/:collection?', async (req, res) => {
+  try {
+    const db = mongoose.connection.db;
+    const { collection } = req.params;
+    
+    if (collection) {
+      // Get specific collection
+      const data = await db.collection(collection).find({}).toArray();
+      res.json({
+        message: `MongoDB collection: ${collection}`,
+        database: 'kambaz',
+        count: data.length,
+        data: data
+      });
+    } else {
+      // List all collections
+      const collections = await db.listCollections().toArray();
+      const collectionNames = collections.map(c => c.name);
+      
+      res.json({
+        message: 'Available MongoDB collections',
+        database: 'kambaz',
+        collections: collectionNames,
+        usage: [
+          'GET /api/debug/mongodb - List all collections',
+          'GET /api/debug/mongodb/quizzes - View quiz data',
+          'GET /api/debug/mongodb/users - View user data',
+          'GET /api/debug/mongodb/courses - View course data',
+          'GET /api/debug/mongodb/modules - View module data',
+          'GET /api/debug/mongodb/enrollments - View enrollment data',
+          'GET /api/debug/mongodb/assignments - View assignment data'
+        ]
+      });
+    }
+  } catch (error) {
+    res.status(500).json({ 
+      error: 'Failed to fetch MongoDB data', 
+      details: error.message 
+    });
+  }
 });
 
 // TEMPORARY ROUTE TO POPULATE TEST DATA (including quiz test data)
@@ -277,8 +320,10 @@ app.get('/api/populate-test-data', async (req, res) => {
         admin: { username: 'charlie', password: 'charlie123', role: 'ADMIN' }
       },
       nextSteps: [
-        'Visit /api/users to see all users',
-        'Visit /api/courses to see all courses',
+        'Visit /api/debug/mongodb to see all collections',
+        'Visit /api/debug/mongodb/users to see user data',
+        'Visit /api/debug/mongodb/courses to see course data',
+        'Visit /api/debug/mongodb/quizzes to see quiz data',
         'Visit /api/quizzes/test to test quiz routes',
         'Try signing up/signing in with the test accounts',
         'Test course enrollment functionality'
@@ -303,6 +348,7 @@ app.get('/api/clear-all-data', async (req, res) => {
     await db.collection('courses').deleteMany({});
     await db.collection('modules').deleteMany({});
     await db.collection('enrollments').deleteMany({});
+    await db.collection('quizzes').deleteMany({});
 
     res.json({
       message: 'All data cleared successfully! 🧹',
@@ -320,7 +366,7 @@ CourseRoutes(app);   // Course CRUD operations + nested modules/assignments
 ModuleRoutes(app);   // Module CRUD operations
 EnrollmentRoutes(app); // Enrollment operations
 AssignmentRoutes(app); //Assignment operations
-QuizRoutes(app);     // 👈 ADD THIS LINE - Quiz operations
+QuizRoutes(app);     // Quiz operations
 
 const port = process.env.PORT || 4000;
 app.listen(port, () => {
@@ -333,5 +379,8 @@ app.listen(port, () => {
   console.log(`\n🧪 Test routes:`);
   console.log(`   Populate data: http://localhost:${port}/api/populate-test-data`);
   console.log(`   Clear data: http://localhost:${port}/api/clear-all-data`);
-  console.log(`   Quiz routes test: http://localhost:${port}/api/quizzes/test`); // 👈 ADD THIS LINE
+  console.log(`   Quiz routes test: http://localhost:${port}/api/quizzes/test`);
+  console.log(`   MongoDB debug: http://localhost:${port}/api/debug/mongodb`);
+  console.log(`   View users: http://localhost:${port}/api/debug/mongodb/users`);
+  console.log(`   View quizzes: http://localhost:${port}/api/debug/mongodb/quizzes`);
 });
