@@ -1,8 +1,6 @@
-import courses from "./courses.json";
-import modules from "./modules.json"; 
-import assignments from "./assignments.json";
-
-// Add the iron_man account and update existing users
+// ================================
+// USERS DATA
+// ================================
 export let users = [
   {
     _id: "121",
@@ -78,6 +76,236 @@ export let users = [
   }
 ];
 
+// ================================
+// COURSES DATA
+// ================================
+export let coursesData = [
+  {
+    _id: "RS101",
+    name: "React and Single Page Applications",
+    number: "CS5610",
+    startDate: "2023-01-10",
+    endDate: "2023-05-15",
+    department: "D123",
+    credits: 4,
+    description: "This course provides students with hands-on experience developing single-page applications using React and related technologies."
+  },
+  {
+    _id: "RS102", 
+    name: "Node.js and Express",
+    number: "CS5500",
+    startDate: "2023-01-10",
+    endDate: "2023-05-15",
+    department: "D123",
+    credits: 3,
+    description: "Learn server-side development with Node.js, Express framework, and database integration."
+  },
+  {
+    _id: "RS103",
+    name: "Database Management",
+    number: "CS3200",
+    startDate: "2023-01-10", 
+    endDate: "2023-05-15",
+    department: "D134",
+    credits: 4,
+    description: "Introduction to database concepts, SQL, and database design principles."
+  },
+  {
+    _id: "RS104",
+    name: "JavaScript Fundamentals",
+    number: "CS2500",
+    startDate: "2023-01-10",
+    endDate: "2023-05-15", 
+    department: "D123",
+    credits: 3,
+    description: "Learn the fundamentals of JavaScript programming including ES6+ features."
+  },
+  {
+    _id: "RS105",
+    name: "Web Development Basics",
+    number: "CS1100", 
+    startDate: "2023-01-10",
+    endDate: "2023-05-15",
+    department: "D123",
+    credits: 2,
+    description: "Introduction to HTML, CSS, and basic web development concepts."
+  },
+  {
+    _id: "RS106",
+    name: "Machine Learning",
+    number: "CS6140",
+    startDate: "2023-01-10",
+    endDate: "2023-05-15",
+    department: "D134", 
+    credits: 4,
+    description: "Introduction to machine learning algorithms and applications."
+  },
+  {
+    _id: "course-cs5610",
+    name: "Web Development",
+    number: "CS5610",
+    startDate: "2023-01-10",
+    endDate: "2023-05-15", 
+    department: "D123",
+    credits: 4,
+    description: "Full stack web development with modern frameworks and technologies."
+  }
+];
+
+// ================================
+// MODULES DATA  
+// ================================
+export let modulesData = [
+  {
+    _id: "M101",
+    name: "Introduction to React",
+    description: "Learn the basics of React components and JSX",
+    course: "RS101",
+    lessons: [
+      {
+        _id: "L101",
+        name: "What is React?",
+        description: "Overview of React library",
+        module: "M101"
+      },
+      {
+        _id: "L102", 
+        name: "Creating Components",
+        description: "How to create React components",
+        module: "M101"
+      }
+    ]
+  },
+  {
+    _id: "M102",
+    name: "State Management",
+    description: "Managing component state in React",
+    course: "RS101",
+    lessons: [
+      {
+        _id: "L201",
+        name: "useState Hook",
+        description: "Using the useState hook for state management",
+        module: "M102"
+      },
+      {
+        _id: "L202",
+        name: "useEffect Hook", 
+        description: "Side effects and lifecycle with useEffect",
+        module: "M102"
+      }
+    ]
+  },
+  {
+    _id: "M103",
+    name: "Express Fundamentals",
+    description: "Building web servers with Express",
+    course: "RS102",
+    lessons: [
+      {
+        _id: "L301",
+        name: "Setting up Express",
+        description: "Creating your first Express server",
+        module: "M103"
+      },
+      {
+        _id: "L302",
+        name: "Routing",
+        description: "Handling different routes in Express", 
+        module: "M103"
+      }
+    ]
+  },
+  {
+    _id: "M104",
+    name: "Database Connections",
+    description: "Connecting Node.js to databases",
+    course: "RS102",
+    lessons: [
+      {
+        _id: "L401",
+        name: "MongoDB with Mongoose",
+        description: "Using Mongoose ODM with MongoDB",
+        module: "M104"
+      }
+    ]
+  },
+  {
+    _id: "M105",
+    name: "SQL Basics", 
+    description: "Introduction to SQL queries",
+    course: "RS103",
+    lessons: [
+      {
+        _id: "L501",
+        name: "SELECT Statements",
+        description: "Basic data retrieval with SELECT",
+        module: "M105"
+      },
+      {
+        _id: "L502",
+        name: "JOINs",
+        description: "Combining data from multiple tables",
+        module: "M105"
+      }
+    ]
+  }
+];
+
+// ================================
+// ASSIGNMENTS DATA
+// ================================
+export let assignmentsData = [
+  {
+    _id: "A101",
+    title: "React Component Lab",
+    course: "RS101",
+    availableDate: "2023-05-13",
+    dueDate: "2023-05-20", 
+    points: 100,
+    description: "Create a React application with multiple components"
+  },
+  {
+    _id: "A102",
+    title: "State Management Exercise",
+    course: "RS101",
+    availableDate: "2023-05-20",
+    dueDate: "2023-05-27",
+    points: 100,
+    description: "Build an interactive React app using hooks"
+  },
+  {
+    _id: "A103", 
+    title: "Express Server Setup",
+    course: "RS102",
+    availableDate: "2023-05-13",
+    dueDate: "2023-05-20",
+    points: 100,
+    description: "Create a RESTful API with Express"
+  },
+  {
+    _id: "A104",
+    title: "Database Integration",
+    course: "RS102", 
+    availableDate: "2023-05-20",
+    dueDate: "2023-05-27",
+    points: 100,
+    description: "Connect your Express app to MongoDB"
+  },
+  {
+    _id: "A105",
+    title: "SQL Query Practice",
+    course: "RS103",
+    availableDate: "2023-05-13",
+    dueDate: "2023-05-20",
+    points: 100,
+    description: "Complete a series of SQL exercises"
+  }
+];
+
+// ================================
+// ENROLLMENTS DATA
+// ================================
 export let enrollments = [
   { _id: "1", user: "122", course: "RS101" }, // Bob enrolled in React
   { _id: "2", user: "122", course: "RS102" }, // Bob enrolled in Node  
@@ -91,21 +319,27 @@ export let enrollments = [
   { _id: "10", user: "125", course: "RS101" }, // Iron Man enrolled in React
   { _id: "11", user: "125", course: "RS106" }, // Iron Man enrolled in ML
   { _id: "12", user: "126", course: "RS102" }, // Alice W enrolled in Software Engineering
+  { _id: "13", user: "122", course: "course-cs5610" }, // Bob enrolled in Web Dev
+  { _id: "14", user: "121", course: "course-cs5610" }, // Alice teaches Web Dev
+  { _id: "15", user: "123", course: "course-cs5610" }, // Charlie teaches Web Dev
 ];
 
-// 👈 ADD THESE QUIZ DATA STRUCTURES
+// ================================
+// QUIZ DATA STRUCTURES (NEW!)
+// ================================
 export let quizzes = [];
 export let quizAttempts = [];
 
-// Make the imported data mutable for CRUD operations
-export let coursesData = [...courses];
-export let modulesData = [...modules];
-export let assignmentsData = [...assignments];
+// ================================
+// LEGACY EXPORTS FOR COMPATIBILITY
+// ================================
+export const courses = coursesData;
+export const modules = modulesData;
+export const assignments = assignmentsData;
 
-// Export the original data as well for reference
-export { courses, modules, assignments };
-
-// User CRUD Operations - REQUIRED FOR AUTHENTICATION
+// ================================
+// USER CRUD OPERATIONS
+// ================================
 export const findUserByCredentials = (username, password) => {
   return users.find(user => user.username === username && user.password === password);
 };
@@ -136,7 +370,9 @@ export const createUser = (userData) => {
   return newUser;
 };
 
-// Course CRUD Operations
+// ================================
+// COURSE CRUD OPERATIONS
+// ================================
 export const getCoursesByUser = (userId) => {
   const userEnrollments = enrollments.filter(enrollment => enrollment.user === userId);
   return coursesData.filter(course => 
@@ -181,7 +417,9 @@ export const deleteCourse = (courseId) => {
   return false;
 };
 
-// Module CRUD Operations
+// ================================
+// MODULE CRUD OPERATIONS
+// ================================
 export const getModulesByCourse = (courseId) => {
   return modulesData.filter(module => module.course === courseId);
 };
@@ -217,7 +455,9 @@ export const deleteModule = (moduleId) => {
   return false;
 };
 
-// Assignment CRUD Operations
+// ================================
+// ASSIGNMENT CRUD OPERATIONS
+// ================================
 export const getAssignmentsByCourse = (courseId) => {
   return assignmentsData.filter(assignment => assignment.course === courseId);
 };
@@ -253,7 +493,9 @@ export const deleteAssignment = (assignmentId) => {
   return false;
 };
 
-// Enrollment CRUD Operations
+// ================================
+// ENROLLMENT CRUD OPERATIONS
+// ================================
 export const enrollUserInCourse = (userId, courseId) => {
   const newEnrollment = {
     _id: Date.now().toString(),
