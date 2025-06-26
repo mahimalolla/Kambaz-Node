@@ -1,8 +1,7 @@
 import * as dao from "./dao.js";
 import * as modulesDao from "../Modules/dao.js";
 import * as enrollmentsDao from "../Enrollments/dao.js";
-import * as assignmentsDao from "../Assignments/dao.js"; // ✅ ADDED ASSIGNMENTS DAO
-// import * as quizzesDao from "../Quizzes/dao.js"; // COMMENTED OUT - not implemented yet
+import * as assignmentsDao from "../Assignments/dao.js";
 import { v4 as uuidv4 } from "uuid";
 
 export default function CourseRoutes(app) {
@@ -119,7 +118,7 @@ export default function CourseRoutes(app) {
   });
 
   // ================================
-  // ASSIGNMENT ROUTES (✅ NOW IMPLEMENTED WITH MONGODB)
+  // ASSIGNMENT ROUTES
   // ================================
 
   // Get all assignments for a course
@@ -151,11 +150,9 @@ export default function CourseRoutes(app) {
   });
 
   // ================================
-  // QUIZ ROUTES (temporarily disabled)
+  // QUIZ ROUTES 
   // ================================
+  // Note: Quiz routes are handled by QuizRoutes in index.js
+  // No conflicting routes here - let the quiz routes handler manage all quiz endpoints
 
-  // Temporarily return empty array for quizzes (REMOVED DUPLICATE ROUTE)
-  app.get("/api/courses/:courseId/quizzes", (req, res) => {
-    res.json([]);
-  });
 }
